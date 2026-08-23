@@ -1,4 +1,4 @@
-# CLAUDE.md — gjoa project guide
+# AGENTS.md — gjoa project guide
 
 gjoa is a Firefox fork authored in **beagle** (`.bjs` → JS / `.sys.mjs`). This
 file is the always-loaded surface: load-bearing rules + thin pointers. The rich
@@ -8,7 +8,7 @@ detail lives in the docs it references — keep those current, keep this lean.
 
 - **Lane 1** — chrome JS/CSS, `gjoa sync` + restart, **~1 s, no rebuild**. *Default new code here.*
 - **Lane 2** — `.sys.mjs` overlay / patch / branding, `mach build faster`, **~30 s**.
-- **Lane 3** — C++/Rust / version bump / configure flags, full mach or nix, **30–60 min**.
+- **Lane 3** — C++/Rust / version bump / configure flags, a long full mach or nix build.
 - **Release is NOT a lane.** A local build is dev *verification*; the release is
   **CI-built on a `vX.Y.Z` tag push** (free GitHub runners by default; Blacksmith =
   paid opt-in `fast: true`). → `docs/daily-loop.md` "I want to cut a release".
@@ -36,7 +36,7 @@ hot-reload. Proposing a nix rebuild to verify a *chrome* fix is the smell.
 1. **`bun run import` first** — the flake compiles `engine/`, which reflects
    `src/gjoa/` only after an import.
 2. **`bun run preflight`** — the current gates catch patch / eval / alignment /
-   security breakage before a 2–3 h compile. The live gate registry + what each
+   security breakage before the long full build. The live gate registry + what each
    enforces is **GENERATED** in [`docs/stewardship/topology.md`](docs/stewardship/topology.md)
    (Gate T fails on docs↔machinery drift) — never hand-maintain a gate list here.
 

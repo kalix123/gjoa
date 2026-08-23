@@ -8,7 +8,7 @@ The surface we own today: **10 `patches/`** (against Mozilla source) + the `src/
 
 ## The Lane doctrine — conflict cadence is a function of seam depth
 
-The organizing principle (CLAUDE.md, "Lane classification" + Hard rule 3). Patch-conflict frequency rises monotonically with how deep into native code an edit reaches:
+The organizing principle (AGENTS.md, "Build lanes" + Hard rule 3). Patch-conflict frequency rises monotonically with how deep into native code an edit reaches:
 
 | Lane | Seam | Conflict cadence | Iteration cost |
 |---|---|---|---|

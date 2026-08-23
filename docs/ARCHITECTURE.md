@@ -5,7 +5,8 @@ one page. Diagrams render in any markdown viewer with mermaid support
 (GitHub, VS Code preview, most others).
 
 You should not need to remember rebuild discipline or compile flags.
-That's Claude's job. This doc is for *understanding*, not memorization.
+The project instructions own that discipline; this doc is for *understanding*,
+not memorization.
 If you need to take action, run `gjoa status` — it tells you what command
 to run for your current state.
 
@@ -222,7 +223,7 @@ can see when they diverge.
 
 ## Pointers
 
-- [`CLAUDE.md`](../CLAUDE.md) — operational rules
+- [`AGENTS.md`](../AGENTS.md) — operational rules
 - [`docs/build-pipeline.md`](build-pipeline.md) — build lanes, import flow, and troubleshooting
 - [`docs/nix-dev-options.md`](nix-dev-options.md) — comparison of nix-dev paths, impurity tradeoffs
 - [`docs/security-policy.md`](security-policy.md) — Firefox version pin update cadence

@@ -343,7 +343,7 @@
             (console/log (dim (str "oracles offline: " (js/call (:errors oracles) .join ", ")))))
 
           (console/log "")
-          (console/log (dim "docs/ARCHITECTURE.md  ·  CLAUDE.md")))))))
+          (console/log (dim "docs/ARCHITECTURE.md  ·  AGENTS.md")))))))
 
 ;; Entry point: run via `bun run`. Gated on import.meta.main so the CLI runs
 ;; only when invoked directly, never on import.

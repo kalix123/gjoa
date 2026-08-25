@@ -24,10 +24,6 @@ jobs:
     timeout-minutes: 300
     env:
       FF_VERSION: "153.0.3"
-      # Local tooling derives ~/code/beagle/pins/<full-object-id> directly from
-      # configs/beagle.ref. CI overrides BEAGLE_PIN_ROOT with its checkout of that
-      # same object, so compilation is deterministic rather than following HEAD.
-      BEAGLE_PIN_ROOT: ${{ github.workspace }}/../beagle
     steps:
       - uses: actions/checkout@v4
 
@@ -92,41 +88,15 @@ jobs:
           sed -i '' 's/return "26.4"/return "26.0"/' \
             engine/build/moz.configure/toolchain.configure
 
-      # gjoa's build tooling is written in beagle (a Racket compiler) and is
-      # invoked as a sibling checkout at ../beagle. CI only checks out gjoa, so
-      # without these two steps `bun run import` dies with
-      # "../beagle/bin/beagle-build: No such file or directory" (exit 127).
-      # beagle-build runs standalone with just Racket + the repo (verified: no
-      # raco-pkg-install / direnv / PLTCOLLECTS setup needed).
+      # tools/bootstrap-beagle.sh fetches the exact configs/beagle.ref object on
+      # first use. Keep the compiler runtime pinned too: a moving Racket can emit
+      # different JavaScript from the same Beagle source object.
       - name: Install Racket (beagle compiler runtime)
         uses: Bogdanp/setup-racket@v1.15
         with:
           # #143: pin to the local reference Racket — 'stable' is a moving target
           # that skews beagle's emit vs local. See build-linux.yml for the detail.
           version: '9.2'
-      - name: Checkout beagle (sibling compiler, pinned to configs/beagle.ref)
-        run: |
-          PIN="$(grep -vE '^\s*#' configs/beagle.ref | grep -vE '^\s*$' | head -1 | tr -d '[:space:]')"
-          echo "Pinning beagle to $PIN"
-          git clone --no-checkout --filter=blob:none https://github.com/tompassarelli/beagle.git ../beagle
-          git -C ../beagle fetch --depth 1 origin "$PIN"
-          git -C ../beagle checkout FETCH_HEAD
-          echo "beagle now at $(git -C ../beagle rev-parse HEAD)"
-      # beagle-build resolves modules from the 'beagle' Racket collection, which
-      # beagle-lib provides (info.rkt: collection "beagle", deps just base).
-      - name: Register beagle collection
-        run: raco pkg install --link --batch --no-docs ../beagle/beagle-lib
-
-      - name: Link beagle runtime for bun tooling (pinned)
-        # Compiled .bjs tooling imports the $$bc runtime as `beagle/core.js`; bun
-        # resolves it via node_modules/beagle. Point it at the pinned beagle
-        # checkout. MUST run after the beagle checkout — `bun install` earlier
-        # can't see ../beagle yet.
-        run: |
-          mkdir -p node_modules
-          ln -sfn "$BEAGLE_PIN_ROOT/beagle-lib/lib/beagle" node_modules/beagle
-          echo "node_modules/beagle -> $(readlink node_modules/beagle)"
-
       - name: Apply overlays and patches
         run: bun run import
 

@@ -97,6 +97,11 @@ jobs:
           # #143: pin to the local reference Racket — 'stable' is a moving target
           # that skews beagle's emit vs local. See build-linux.yml for the detail.
           version: '9.2'
+      - name: Install Bash (beagle compiler runtime)
+        run: |
+          brew install bash
+          "$(brew --prefix)/bin/bash" --version
+          echo "$(brew --prefix)/bin" >> "$GITHUB_PATH"
       - name: Apply overlays and patches
         run: bun run import
 

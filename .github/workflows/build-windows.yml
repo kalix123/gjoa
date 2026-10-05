@@ -27,7 +27,7 @@ jobs:
     runs-on: ${{ inputs.fast && 'blacksmith-16vcpu-ubuntu-2404' || 'ubuntu-24.04' }}
     timeout-minutes: 360
     env:
-      FF_VERSION: "153.0.3"
+      FF_VERSION: "157.0.0"
       # Local tooling derives ~/code/beagle/pins/<full-object-id> directly from
       # configs/beagle.ref. CI overrides BEAGLE_PIN_ROOT with its checkout of that
       # same object, so compilation is deterministic rather than following HEAD.

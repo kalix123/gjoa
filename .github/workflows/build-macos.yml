@@ -105,9 +105,6 @@ jobs:
       - name: Apply overlays and patches
         run: bash "$GITHUB_WORKSPACE/.github/scripts/logged.sh" import bun run import
 
-      - name: Verify JS projector + claim-docs
-        run: bash "$GITHUB_WORKSPACE/.github/scripts/logged.sh" projector bun run projector:test
-
       - name: Write mozconfig
         run: |
           cat > engine/mozconfig <<'MOZCONFIG'

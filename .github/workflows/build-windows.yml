@@ -124,10 +124,10 @@ jobs:
           echo "node_modules/beagle -> $(readlink node_modules/beagle)"
 
       - name: Apply overlays and patches
-        run: bun run import
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/logged.sh" import bun run import
 
       - name: Verify JS projector + claim-docs
-        run: bun run projector:test
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/logged.sh" projector bun run projector:test
 
       # --- Windows cross toolchain (adapted from zen windows-release-build.yml) ---
       - name: Setup Windows cross toolchain
@@ -239,13 +239,13 @@ jobs:
           # Headless: fxc2 runs under wine with the NULL display driver selected in
           # Setup (~/.wine), so no X server is needed — its window/OLE init is a
           # no-op and the shader compile proceeds.
-          ./mach build -j${{ inputs.fast && '16' || '2' }}
+          bash "$GITHUB_WORKSPACE/.github/scripts/logged.sh" mach-build ./mach build -j${{ inputs.fast && '16' || '2' }}
 
       - name: Package
         working-directory: engine
         run: |
           export MOZBUILD_STATE_PATH="$HOME/.mozbuild"
-          ./mach package
+          bash "$GITHUB_WORKSPACE/.github/scripts/logged.sh" mach-package ./mach package
 
       - name: Package Windows ZIP
         working-directory: engine

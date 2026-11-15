@@ -153,7 +153,7 @@ jobs:
           echo "node_modules/beagle -> $(readlink node_modules/beagle)"
 
       - name: Apply overlays and patches
-        run: bun run import
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/logged.sh" import bun run import
 
       - name: Verify generated chrome smoke
         run: |
@@ -162,7 +162,7 @@ jobs:
 
       - name: Verify JS projector + claim-docs
         run: |
-          bun run projector:test || {
+          bash "$GITHUB_WORKSPACE/.github/scripts/logged.sh" projector bun run projector:test || {
             echo "::group::projector failure diagnostics — which emitted bundle has the bad char"
             for f in dist/chrome/JS/*.uc.js; do echo "-- $f --"; node --check "$f" 2>&1 | head -3 || true; done
             echo "--- grep @ ---"; grep -n '@' dist/chrome/JS/*.uc.js | head -40 || true
@@ -200,7 +200,7 @@ jobs:
 
       - name: Build
         working-directory: engine
-        run: ./mach build -j${{ inputs.arch == 'x86_64' && inputs.fast && '16' || '2' }}
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/logged.sh" mach-build ./mach build -j${{ inputs.arch == 'x86_64' && inputs.fast && '16' || '2' }}
 
       - name: Verify binary architecture
         run: |
@@ -229,7 +229,7 @@ jobs:
           GJOA_BIN="$(find "$PWD/engine"/obj-*/dist/bin/gjoa -type f -print -quit)"
           test -n "$GJOA_BIN"
           GJOA_BIN="$GJOA_BIN" \
-            timeout 180 xvfb-run -a bun run _itest -- --verbose --grep "smoke: gjoa chrome"
+            bash "$GITHUB_WORKSPACE/.github/scripts/logged.sh" chrome-smoke timeout 180 xvfb-run -a bun run _itest -- --verbose --grep "smoke: gjoa chrome"
 
       # Dark-mode contrast verification — runs the WCAG-AA harness against the
       # freshly-built binary in a clean xvfb env (the agent shell can't launch the
@@ -258,7 +258,7 @@ jobs:
 
       - name: Package
         working-directory: engine
-        run: ./mach package
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/logged.sh" mach-package ./mach package
 
       # The Firefox package is already a portable, self-contained application
       # tree. AppImage wraps that same tree without rewriting its libraries.

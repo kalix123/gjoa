@@ -103,10 +103,10 @@ jobs:
           "$(brew --prefix)/bin/bash" --version
           echo "$(brew --prefix)/bin" >> "$GITHUB_PATH"
       - name: Apply overlays and patches
-        run: bun run import
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/logged.sh" import bun run import
 
       - name: Verify JS projector + claim-docs
-        run: bun run projector:test
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/logged.sh" projector bun run projector:test
 
       - name: Write mozconfig
         run: |
@@ -135,11 +135,11 @@ jobs:
 
       - name: Build
         working-directory: engine
-        run: ./mach build
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/logged.sh" mach-build ./mach build
 
       - name: Package
         working-directory: engine
-        run: ./mach package
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/logged.sh" mach-package ./mach package
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

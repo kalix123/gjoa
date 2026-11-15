@@ -1,0 +1,57 @@
+name: Beagle emit capture (temporary)
+
+# Temporary helper for the noBeagle port: compile every .bjs with the pinned
+# Beagle compiler and push the emitted JavaScript to the `beagle-emit-out`
+# branch, so the port can start from the compiler's exact output.
+on:
+  push:
+    branches: [beagle-emit]
+
+permissions:
+  contents: write
+
+jobs:
+  emit:
+    runs-on: ubuntu-24.04
+    env:
+      BEAGLE_PIN_ROOT: ${{ github.workspace }}/../beagle
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install
+      - uses: Bogdanp/setup-racket@v1.15
+        with:
+          version: '9.2'
+      - name: Checkout pinned beagle
+        run: |
+          PIN="$(grep -vE '^\s*#' configs/beagle.ref | grep -vE '^\s*$' | head -1 | tr -d '[:space:]')"
+          git clone --no-checkout --filter=blob:none https://github.com/tompassarelli/beagle.git ../beagle
+          git -C ../beagle fetch --depth 1 origin "$PIN"
+          git -C ../beagle checkout FETCH_HEAD
+      - run: raco pkg install --link --batch --no-docs ../beagle/beagle-lib
+      - name: Link runtime
+        run: |
+          mkdir -p node_modules
+          ln -sfn "$BEAGLE_PIN_ROOT/beagle-lib/lib/beagle" node_modules/beagle
+      - name: Compile tools
+        run: bash .github/scripts/logged.sh tools bun run tools:compile || true
+      - name: Compile + bundle chrome
+        run: bash .github/scripts/logged.sh chrome-dist bun run chrome:dist || true
+      - name: Compile standalone .bjs (loader, prefs)
+        run: |
+          mkdir -p emit-standalone
+          for f in src/gjoa/browser/components/gjoa/GjoaLoader.bjs src/gjoa/defaults/pref/*.bjs; do
+            out="emit-standalone/${f%.bjs}.js"; mkdir -p "$(dirname "$out")"
+            bash .github/scripts/logged.sh "emit $f" bash ../beagle/bin/beagle-build "$f" "$out" || true
+          done
+      - name: Push outputs
+        run: |
+          mkdir -p /tmp/out
+          for d in .beagle-out .beagle-tools dist emit-standalone; do [ -e "$d" ] && cp -r "$d" /tmp/out/; done
+          cd /tmp/out
+          git init -q -b beagle-emit-out
+          git config user.name "github-actions"; git config user.email "github-actions@users.noreply.github.com"
+          git add -A && git commit -qm "beagle emit of ${GITHUB_SHA}"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" beagle-emit-out

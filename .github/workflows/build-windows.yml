@@ -26,12 +26,6 @@ jobs:
   build:
     runs-on: ${{ inputs.fast && 'blacksmith-16vcpu-ubuntu-2404' || 'ubuntu-24.04' }}
     timeout-minutes: 360
-    env:
-      FF_VERSION: "160.0"
-      # Local tooling derives ~/code/beagle/pins/<full-object-id> directly from
-      # configs/beagle.ref. CI overrides BEAGLE_PIN_ROOT with its checkout of that
-      # same object, so compilation is deterministic rather than following HEAD.
-      BEAGLE_PIN_ROOT: ${{ github.workspace }}/../beagle
     steps:
       - uses: actions/checkout@v4
 
@@ -43,14 +37,6 @@ jobs:
             /usr/lib/jvm /usr/share/swift "${AGENT_TOOLSDIRECTORY:-/opt/hostedtoolcache}" || true
           sudo docker image prune --all --force || true
           df -h /
-
-      - name: Install bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Install dependencies
-        run: bun install
 
       - name: Install system deps (host + Windows cross)
         run: |
@@ -73,58 +59,14 @@ jobs:
           sudo mkswap /swapfile
           sudo swapon /swapfile
 
-      - name: Download Firefox source
-        run: |
-          mkdir -p ~/.cache/gjoa/sources
-          curl -L -o ~/.cache/gjoa/sources/firefox-${FF_VERSION}.source.tar.xz \
-            "https://archive.mozilla.org/pub/firefox/releases/${FF_VERSION}/source/firefox-${FF_VERSION}.source.tar.xz"
-          ls -lh ~/.cache/gjoa/sources/firefox-${FF_VERSION}.source.tar.xz
-
-      - name: Verify tarball checksum (pinned)
-        run: |
-          PIN="configs/firefox-${FF_VERSION}.sha256"
-          test -f "$PIN" || { echo "missing pinned checksum: $PIN"; exit 1; }
-          expected=$(grep -v '^#' "$PIN" | awk 'NF{print $1; exit}')
-          actual=$(sha256sum ~/.cache/gjoa/sources/firefox-${FF_VERSION}.source.tar.xz | awk '{print $1}')
-          if [ "$expected" != "$actual" ]; then
-            echo "::error::Firefox tarball SHA-256 does not match pinned $PIN"; exit 1
-          fi
-          echo "tarball checksum OK"
-
-      - name: Extract source
-        run: |
-          mkdir -p engine
-          tar -xJf ~/.cache/gjoa/sources/firefox-${FF_VERSION}.source.tar.xz -C engine --strip-components=1
-
-      - name: Install Racket (beagle compiler runtime)
-        uses: Bogdanp/setup-racket@v1.15
+      - uses: actions/setup-node@v4
         with:
-          # #143: pin to the local reference Racket — 'stable' is a moving target
-          # that skews beagle's emit vs local. See build-linux.yml for the detail.
-          version: '9.2'
-      - name: Checkout beagle (sibling compiler, pinned to configs/beagle.ref)
-        run: |
-          PIN="$(grep -vE '^\s*#' configs/beagle.ref | grep -vE '^\s*$' | head -1 | tr -d '[:space:]')"
-          echo "Pinning beagle to $PIN"
-          git clone --no-checkout --filter=blob:none https://github.com/tompassarelli/beagle.git ../beagle
-          git -C ../beagle fetch --depth 1 origin "$PIN"
-          git -C ../beagle checkout FETCH_HEAD
-          echo "beagle now at $(git -C ../beagle rev-parse HEAD)"
-      - name: Register beagle collection
-        run: raco pkg install --link --batch --no-docs ../beagle/beagle-lib
+          node-version: 22
 
-      - name: Link beagle runtime for bun tooling (pinned)
-        # Compiled .bjs tooling imports the $$bc runtime as `beagle/core.js`; bun
-        # resolves it via node_modules/beagle. Point it at the pinned beagle
-        # checkout. MUST run after the beagle checkout — `bun install` earlier
-        # can't see ../beagle yet.
-        run: |
-          mkdir -p node_modules
-          ln -sfn "$BEAGLE_PIN_ROOT/beagle-lib/lib/beagle" node_modules/beagle
-          echo "node_modules/beagle -> $(readlink node_modules/beagle)"
-
-      - name: Apply overlays and patches
-        run: bash "$GITHUB_WORKSPACE/.github/scripts/logged.sh" import bun run import
+      # Download + verify the pinned Firefox source, apply patches, overlay
+      # src/gjoa, bundle the chrome scripts and generate branding (no Beagle).
+      - name: Prepare engine
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/logged.sh" prepare node scripts/prepare.mjs
 
       # --- Windows cross toolchain (adapted from zen windows-release-build.yml) ---
       - name: Setup Windows cross toolchain

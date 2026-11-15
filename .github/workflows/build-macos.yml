@@ -22,8 +22,6 @@ jobs:
     # "Select newest Xcode" step below is required on this runner.
     runs-on: ${{ inputs.fast && 'blacksmith-6vcpu-macos-26' || 'macos-26' }}
     timeout-minutes: 300
-    env:
-      FF_VERSION: "160.0"
     steps:
       - uses: actions/checkout@v4
 
@@ -38,44 +36,14 @@ jobs:
           sudo xcode-select -s "$NEWEST/Contents/Developer"
           xcodebuild -version
 
-      - name: Install bun
-        uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v4
         with:
-          bun-version: latest
+          node-version: 22
 
-      - name: Install dependencies
-        run: bun install
-
-      - name: Download Firefox source
-        run: |
-          mkdir -p ~/.cache/gjoa/sources
-          curl -L -o ~/.cache/gjoa/sources/firefox-${FF_VERSION}.source.tar.xz \
-            "https://archive.mozilla.org/pub/firefox/releases/${FF_VERSION}/source/firefox-${FF_VERSION}.source.tar.xz"
-          ls -lh ~/.cache/gjoa/sources/firefox-${FF_VERSION}.source.tar.xz
-
-      # F9 hardening: verify the downloaded tarball against the IN-REPO pinned
-      # SHA-256 (configs/firefox-${FF_VERSION}.sha256) BEFORE extracting. The
-      # pin is committed + reviewed, so unlike a same-origin SHA256SUMS it can't
-      # be swapped by an origin/TLS compromise. macOS ships `shasum`, not
-      # `sha256sum`; compare the computed hash to the pinned value.
-      - name: Verify tarball checksum (pinned)
-        run: |
-          PIN="configs/firefox-${FF_VERSION}.sha256"
-          test -f "$PIN" || { echo "missing pinned checksum: $PIN"; exit 1; }
-          expected=$(grep -v '^#' "$PIN" | awk 'NF{print $1; exit}')
-          actual=$(shasum -a 256 ~/.cache/gjoa/sources/firefox-${FF_VERSION}.source.tar.xz | awk '{print $1}')
-          echo "expected: $expected"
-          echo "actual:   $actual"
-          if [ "$expected" != "$actual" ]; then
-            echo "::error::Firefox tarball SHA-256 does not match pinned value in $PIN"
-            exit 1
-          fi
-          echo "tarball checksum OK (matches pinned $PIN)"
-
-      - name: Extract source
-        run: |
-          mkdir -p engine
-          tar -xJf ~/.cache/gjoa/sources/firefox-${FF_VERSION}.source.tar.xz -C engine --strip-components=1
+      # Download + verify the pinned Firefox source, apply patches, overlay
+      # src/gjoa, bundle the chrome scripts and generate branding (no Beagle).
+      - name: Prepare engine
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/logged.sh" prepare node scripts/prepare.mjs
 
       - name: Patch macOS SDK version check
         run: |
@@ -87,23 +55,6 @@ jobs:
           xcrun --sdk macosx --show-sdk-version || true
           sed -i '' 's/return "26.4"/return "26.0"/' \
             engine/build/moz.configure/toolchain.configure
-
-      # tools/bootstrap-beagle.sh fetches the exact configs/beagle.ref object on
-      # first use. Keep the compiler runtime pinned too: a moving Racket can emit
-      # different JavaScript from the same Beagle source object.
-      - name: Install Racket (beagle compiler runtime)
-        uses: Bogdanp/setup-racket@v1.15
-        with:
-          # #143: pin to the local reference Racket — 'stable' is a moving target
-          # that skews beagle's emit vs local. See build-linux.yml for the detail.
-          version: '9.2'
-      - name: Install Bash (beagle compiler runtime)
-        run: |
-          brew install bash
-          "$(brew --prefix)/bin/bash" --version
-          echo "$(brew --prefix)/bin" >> "$GITHUB_PATH"
-      - name: Apply overlays and patches
-        run: bash "$GITHUB_WORKSPACE/.github/scripts/logged.sh" import bun run import
 
       - name: Write mozconfig
         run: |

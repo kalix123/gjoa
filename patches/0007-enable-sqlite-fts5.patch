@@ -1,5 +1,5 @@
 # gjoa-patch:
-#   baseline-firefox: 152.0.1
+#   baseline-firefox: 160.0
 #   touches:
 #     - third_party/sqlite3/src/moz.build
 #
@@ -15,18 +15,17 @@ Gjoa wants FTS5 available for in-browser full-text indexing (history,
 bookmarks, tab snapshots). Patch the third_party/sqlite3/src/moz.build
 to define `SQLITE_ENABLE_FTS5 = 1` so the extension gets linked into
 libsqlite3.
-
 diff --git a/third_party/sqlite3/src/moz.build b/third_party/sqlite3/src/moz.build
+index c1f4d50a4a01ca4b2335af59dc2faa1b0896e9f1..74c19f2a463eba67e2d33a92ca0c57f5440d602d 100644
 --- a/third_party/sqlite3/src/moz.build
 +++ b/third_party/sqlite3/src/moz.build
-@@ -135,6 +135,9 @@ DEFINES['SQLITE_DEFAULT_JOURNAL_SIZE_LIMIT'] = 1572864
- # Thunderbird/Mail uses the FTS3 extension, but it's not using enhanced query
- # syntax (SQLITE_ENABLE_FTS3_PARENTHESIS) yet.
+@@ -140,6 +140,9 @@ DEFINES['SQLITE_DEFAULT_JOURNAL_SIZE_LIMIT'] = 1572864
  if CONFIG["MOZ_THUNDERBIRD"] or CONFIG["MOZ_SUITE"]:
      DEFINES['SQLITE_ENABLE_FTS3'] = 1
-
+ 
 +# Gjoa: enable FTS5 for in-browser full-text indexing.
 +DEFINES['SQLITE_ENABLE_FTS5'] = 1
 +
  # The carray extension is part of the amalgamation but disabled by default.
  DEFINES['SQLITE_ENABLE_CARRAY'] = 1
+ 

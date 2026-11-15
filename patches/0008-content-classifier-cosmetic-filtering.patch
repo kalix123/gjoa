@@ -1,11 +1,10 @@
 # gjoa-patch:
-#   baseline-firefox: 153.0.1
+#   baseline-firefox: 160.0
 #   touches:
 #     - Cargo.lock
 #     - toolkit/components/content-classifier/ContentClassifierService.cpp
 #     - toolkit/components/content-classifier/ContentClassifierService.h
 #     - toolkit/components/content-classifier/nsIContentClassifierService.idl
-#     - toolkit/components/content-classifier/components.conf
 #     - toolkit/components/content-classifier/moz.build
 #     - toolkit/components/content-classifier/content_classifier_engine/ContentClassifierEngine.cpp
 #     - toolkit/components/content-classifier/content_classifier_engine/ContentClassifierEngine.h
@@ -18,51 +17,37 @@ element-hiding.
 - Rust FFI: url_cosmetic_resources + hidden_class_id_selectors (+ fill_cstr_thinvec)
 - IDL: getUrlCosmeticResources + getHiddenClassIdSelectors
 - C++ engine wrappers + cross-engine union in the service
-- @mozilla.org/content-classifier-service;1 contract (GetSingleton) so JS can
-  reach the MAIN_PROCESS_ONLY service
+- Since Firefox 160 upstream registers @mozilla.org/content-classifier-service;1
+  itself (GetInstance) and builds on the in-tree etp_engine fork of adblock-rust,
+  so this patch no longer adds a contract; it only extends the engine + IDL.
+- Rust: serde_json dep for the scriptlet resource library (setScriptletResources)
 - moz.build: register the overlaid GjoaCosmetic{Parent,Child}.sys.mjs actors as
   EXTRA_JS_MODULES
-
+diff --git a/Cargo.lock b/Cargo.lock
+index 546a05a39d9ba00f4dfe41b7f48da1321a04c6bd..928bfee3ff20b87af46371238893484e893d87f8 100644
 --- a/Cargo.lock
 +++ b/Cargo.lock
-@@ -1121,6 +1121,7 @@
-  "cstr",
+@@ -1127,6 +1127,7 @@ dependencies = [
+  "etp_engine",
   "nserror",
   "nsstring",
 + "serde_json",
   "thin-vec",
+  "wr_malloc_size_of",
   "xpcom",
- ]
+diff --git a/toolkit/components/content-classifier/ContentClassifierService.cpp b/toolkit/components/content-classifier/ContentClassifierService.cpp
+index 82fa4b992b02a94da7da117c28113f762c9940e0..4f8eb981775e6767bf4ae5420def9ad78c0257e2 100644
 --- a/toolkit/components/content-classifier/ContentClassifierService.cpp
 +++ b/toolkit/components/content-classifier/ContentClassifierService.cpp
-@@ -25,6 +25,7 @@
- #include "nsIAsyncShutdown.h"
- #include "nsIChannel.h"
+@@ -28,6 +28,7 @@
  #include "nsIClassifiedChannel.h"
+ #include "nsIObserverService.h"
+ #include "nsILoadInfo.h"
 +#include "nsTHashSet.h"
  #include "nsIStreamLoader.h"
  #include "nsIURI.h"
- #include "nsNetUtil.h"
-@@ -496,6 +497,18 @@
-   return do_AddRef(sInstance);
- }
- 
-+// static
-+already_AddRefed<ContentClassifierService>
-+ContentClassifierService::GetSingleton() {
-+  if (!sInstance) {
-+    sInstance = new ContentClassifierService();
-+    ClearOnShutdown(&sInstance);
-+    sInstance->Init();
-+  }
-+  RefPtr<ContentClassifierService> service = sInstance.get();
-+  return service.forget();
-+}
-+
- already_AddRefed<nsIAsyncShutdownClient>
- ContentClassifierService::GetAsyncShutdownBarrier() const {
-   nsCOMPtr<nsIAsyncShutdownService> svc = components::AsyncShutdown::Service();
-@@ -669,6 +682,24 @@
+ #include "nsIWritablePropertyBag2.h"
+@@ -893,6 +894,24 @@ ContentClassifierResult ContentClassifierService::ClassifyForAnnotate(
             aRequest.Url().get(), result.Hit(), result.Exception()));
    return result;
  }
@@ -87,7 +72,7 @@ element-hiding.
  
  ContentClassifierResult ContentClassifierService::ClassifyForCancel(
      const ContentClassifierRequest& aRequest) {
-@@ -794,6 +825,109 @@
+@@ -1251,6 +1270,109 @@ NS_IMETHODIMP ContentClassifierService::ProbeFeature(
    return NS_OK;
  }
  
@@ -103,8 +88,8 @@ element-hiding.
 +  aInjectedScript.Truncate();
 +  *aGenericHide = false;
 +
-+  // GetSingleton() (the JS-facing component-manager constructor) does not gate
-+  // on the enabled pref the way GetInstance() does, so re-check it here.
++  // Defensive: the feature can be disabled at runtime after the service was
++  // handed out, so re-check the enabled pref on every query.
 +  if (!IsEnabled()) {
 +    return NS_ERROR_NOT_INITIALIZED;
 +  }
@@ -165,8 +150,8 @@ element-hiding.
 +    const nsTArray<nsCString>& aExceptions, nsTArray<nsCString>& aSelectors) {
 +  aSelectors.Clear();
 +
-+  // GetSingleton() (the JS-facing component-manager constructor) does not gate
-+  // on the enabled pref the way GetInstance() does, so re-check it here.
++  // Defensive: the feature can be disabled at runtime after the service was
++  // handed out, so re-check the enabled pref on every query.
 +  if (!IsEnabled()) {
 +    return NS_ERROR_NOT_INITIALIZED;
 +  }
@@ -197,7 +182,7 @@ element-hiding.
  // Parses a byte buffer of adblock-format filter list text into rules.
  // Tolerates both LF and CRLF line endings; skips empty lines.
  static void ParseFilterListRules(const nsTArray<uint8_t>& aData,
-@@ -861,6 +995,7 @@ static RefPtr<ListBytesPromise> FetchListBytesFromRemoteSettings(
+@@ -1318,6 +1440,7 @@ static RefPtr<ListBytesPromise> FetchListBytesFromRemoteSettings(
  
  nsresult BuildEngineFromRules(const ContentClassifierFeature& aFeature,
                                const nsTArray<nsCString>& aRules,
@@ -205,7 +190,7 @@ element-hiding.
                                RefPtr<ContentClassifierEngine>& aEngineOutput) {
    if (aRules.IsEmpty()) {
      MOZ_LOG_FMT(gContentClassifierLog, LogLevel::Info,
-@@ -871,9 +1006,12 @@ nsresult BuildEngineFromRules(const ContentClassifierFeature& aFeature,
+@@ -1328,9 +1451,12 @@ nsresult BuildEngineFromRules(const ContentClassifierFeature& aFeature,
    }
    aEngineOutput = new ContentClassifierEngine(aFeature);
    nsresult rv = aEngineOutput->InitFromRules(aRules);
@@ -219,7 +204,7 @@ element-hiding.
                  "\"{}\": {:#x}",
                  aFeature.mName, static_cast<uint32_t>(rv));
      aEngineOutput = nullptr;
-@@ -1040,9 +1178,11 @@ void ContentClassifierService::UpdateFeatures(
+@@ -1514,9 +1640,11 @@ void ContentClassifierService::UpdateFeatures(
    nsTArray<uint64_t> featureVersions;
    featureVersions.SetCapacity(features.Length());
    uint64_t generation;
@@ -231,7 +216,7 @@ element-hiding.
      for (const auto* feature : features) {
        uint64_t& v = mFeatureVersions.LookupOrInsert(feature->mName);
        featureVersions.AppendElement(++v);
-@@ -1084,7 +1224,8 @@ void ContentClassifierService::UpdateFeatures(
+@@ -1558,7 +1686,8 @@ void ContentClassifierService::UpdateFeatures(
            [self, features = std::move(features),
             featureVersions = std::move(featureVersions),
             snapshot = std::move(aPreferenceSnapshot),
@@ -241,7 +226,7 @@ element-hiding.
                EngineRulesPromise::AllSettledPromiseType::ResolveOrRejectValue&&
                    aValue) mutable {
              MOZ_ASSERT(NS_IsMainThread());
-@@ -1113,7 +1254,9 @@ void ContentClassifierService::UpdateFeatures(
+@@ -1587,7 +1716,9 @@ void ContentClassifierService::UpdateFeatures(
                  [self, features = std::move(features),
                   featureVersions = std::move(featureVersions),
                   perFeatureRules = std::move(perFeatureRules),
@@ -252,7 +237,7 @@ element-hiding.
                    MOZ_ASSERT(!NS_IsMainThread());
  
                    // Build engines outside the lock; InitFromRules can be
-@@ -1128,7 +1271,8 @@ void ContentClassifierService::UpdateFeatures(
+@@ -1602,7 +1733,8 @@ void ContentClassifierService::UpdateFeatures(
                      }
                      RefPtr<ContentClassifierEngine> engine;
                      if (NS_FAILED(BuildEngineFromRules(
@@ -262,22 +247,11 @@ element-hiding.
                        continue;
                      }
                      builtEngines[i] = std::move(engine);
+diff --git a/toolkit/components/content-classifier/ContentClassifierService.h b/toolkit/components/content-classifier/ContentClassifierService.h
+index ac19915b4f2300e41fd07f3f544aca1032dcc59f..66cefd1c1b0f82c291f9afdc7f1881a24a473599 100644
 --- a/toolkit/components/content-classifier/ContentClassifierService.h
 +++ b/toolkit/components/content-classifier/ContentClassifierService.h
-@@ -186,6 +186,12 @@
- 
-   static already_AddRefed<ContentClassifierService> GetInstance();
- 
-+  // Component-manager constructor for @mozilla.org/content-classifier-service;1.
-+  // Returns the singleton unconditionally (constructing it if needed), so JS
-+  // can query cosmetic resources. Unlike GetInstance() it does not gate on the
-+  // enabled pref; callers that need that gate check IsEnabled() themselves.
-+  static already_AddRefed<ContentClassifierService> GetSingleton();
-+
-   static bool IsEnabled();
-   static bool IsInitialized();
- 
-@@ -219,6 +225,11 @@
+@@ -285,6 +285,11 @@ class ContentClassifierService final : public nsIAsyncShutdownBlocker,
    void ShutdownRSClient();
    void RemoveBlocker();
    already_AddRefed<nsIAsyncShutdownClient> GetAsyncShutdownBarrier() const;
@@ -287,9 +261,9 @@ element-hiding.
 +  // the classifier worker) must hold mLock. MOZ_GUARDED_BY enforces it; do not
 +  // add a code path that touches an engine without the lock.
  
-   // aIndependentEngines makes every engine evaluate its own rules in
-   // isolation; matched_rule is not threaded across engines. Used by the
-@@ -326,6 +337,11 @@
+   // Cancel threads matched_rule across engines so trailing exception engines
+   // see an earlier hit. Annotate evaluates every engine in isolation so
+@@ -393,6 +398,11 @@ class ContentClassifierService final : public nsIAsyncShutdownBlocker,
    nsTArray<RefPtr<ContentClassifierEngine>> mAnnotateEnginesPBM
        MOZ_GUARDED_BY(mLock);
  
@@ -301,35 +275,23 @@ element-hiding.
    // RemoteSettings client for fetching filter lists. All reads and
    // writes must happen on the main thread; each call site asserts.
    nsCOMPtr<nsIContentClassifierRemoteSettingsClient> mRSClient;
---- a/toolkit/components/content-classifier/components.conf
-+++ b/toolkit/components/content-classifier/components.conf
-@@ -13,4 +13,13 @@
-         'singleton': True,
-         'processes': ProcessSelector.MAIN_PROCESS_ONLY,
-     },
-+    {
-+        'cid': '{cc5d6c7c-a415-4abb-a94d-73479b456b50}',
-+        'contract_ids': ['@mozilla.org/content-classifier-service;1'],
-+        'singleton': True,
-+        'type': 'mozilla::ContentClassifierService',
-+        'constructor': 'mozilla::ContentClassifierService::GetSingleton',
-+        'headers': ['mozilla/ContentClassifierService.h'],
-+        'processes': ProcessSelector.MAIN_PROCESS_ONLY,
-+    },
- ]
+diff --git a/toolkit/components/content-classifier/content_classifier_engine/Cargo.toml b/toolkit/components/content-classifier/content_classifier_engine/Cargo.toml
+index f184ede3a20804546026b7a91360ce010cb8b78b..5149cee65e4759c2d15d4629fb50dd5dcaf02122 100644
 --- a/toolkit/components/content-classifier/content_classifier_engine/Cargo.toml
 +++ b/toolkit/components/content-classifier/content_classifier_engine/Cargo.toml
-@@ -8,6 +8,7 @@
- [dependencies]
- adblock = { version = "0.12.1", features = ["full-regex-handling", "single-thread"], default-features = false }
+@@ -9,6 +9,7 @@ license = "MPL-2.0"
+ etp_engine = { path = "../etp_engine", features = ["full-regex-handling", "single-thread", "malloc-size-of"], default-features = false }
  cstr = "0.2"
+ malloc_size_of = { path = "../../../../gfx/wr/wr_malloc_size_of", package = "wr_malloc_size_of", default-features = false }
 +serde_json = "1.0"
  nsstring = { path = "../../../../xpcom/rust/nsstring" }
  nserror = { path = "../../../../xpcom/rust/nserror" }
  thin-vec = { version = "0.2.1", features = ["gecko-ffi"] }
+diff --git a/toolkit/components/content-classifier/content_classifier_engine/ContentClassifierEngine.cpp b/toolkit/components/content-classifier/content_classifier_engine/ContentClassifierEngine.cpp
+index 4bbfdba40595b64631940b5fb48916cc11529031..c5be57b66733c352ace8669ad7a33b618e3ab94c 100644
 --- a/toolkit/components/content-classifier/content_classifier_engine/ContentClassifierEngine.cpp
 +++ b/toolkit/components/content-classifier/content_classifier_engine/ContentClassifierEngine.cpp
-@@ -40,6 +40,28 @@ ContentClassifierEngineResult ContentClassifierEngine::CheckNetworkRequest(
+@@ -74,6 +74,28 @@ ContentClassifierEngineResult ContentClassifierEngine::CheckNetworkRequest(
                                         rv, mFeature);
  }
  
@@ -356,11 +318,13 @@ element-hiding.
 +}
 +
  ContentClassifierRequest::ContentClassifierRequest(nsIChannel* aChannel)
-     : mThirdParty(true), mValid(false) {
+     : mThirdParty(true), mThirdPartyToSource(true), mValid(false) {
    nsCOMPtr<nsIURI> uri;
+diff --git a/toolkit/components/content-classifier/content_classifier_engine/ContentClassifierEngine.h b/toolkit/components/content-classifier/content_classifier_engine/ContentClassifierEngine.h
+index 6c185f3195ec63f4dbbfddab61c97611a7bce0bd..765bc062ec7c6e27309b0834c5012d626227f169 100644
 --- a/toolkit/components/content-classifier/content_classifier_engine/ContentClassifierEngine.h
 +++ b/toolkit/components/content-classifier/content_classifier_engine/ContentClassifierEngine.h
-@@ -84,11 +84,32 @@
+@@ -107,6 +107,15 @@ class ContentClassifierEngine final {
      return content_classifier_engine_from_rules(&aRules, &mEngine);
    }
  
@@ -376,7 +340,9 @@ element-hiding.
    const ContentClassifierFeature& Feature() const { return mFeature; }
  
    ContentClassifierEngineResult CheckNetworkRequest(
-       const ContentClassifierRequest& aRequest, bool aPreviouslyMatched);
+@@ -128,6 +137,18 @@ class ContentClassifierEngine final {
+     return sizes;
+   }
  
 +  nsresult GetUrlCosmeticResources(const nsACString& aUrl,
 +                                   nsTArray<nsCString>& aHideSelectors,
@@ -393,22 +359,24 @@ element-hiding.
   private:
    ~ContentClassifierEngine() {
      if (mEngine) {
+diff --git a/toolkit/components/content-classifier/content_classifier_engine/src/lib.rs b/toolkit/components/content-classifier/content_classifier_engine/src/lib.rs
+index b739220db109eb60bc042c675624fe1f64f3b66b..f86ac7cba0d4c157827a2f46bbab6ac47965ede9 100644
 --- a/toolkit/components/content-classifier/content_classifier_engine/src/lib.rs
 +++ b/toolkit/components/content-classifier/content_classifier_engine/src/lib.rs
-@@ -2,6 +2,7 @@
-  * License, v. 2.0. If a copy of the MPL was not distributed with this
+@@ -3,6 +3,7 @@
   * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
  
+ use std::os::raw::c_void;
 +use std::collections::HashSet;
  use std::sync::Mutex;
  
- use adblock::Engine;
-@@ -67,6 +68,28 @@
+ use cstr::cstr;
+@@ -64,6 +65,28 @@ pub unsafe extern "C" fn content_classifier_engine_from_rules(
      NS_OK
  }
  
 +/// Load a scriptlet/redirect resource library (uBO-style, JSON-serialized
-+/// `Vec<adblock::resources::Resource>`) into the engine. Without this, the
++/// `Vec<etp_engine::resources::Resource>`) into the engine. Without this, the
 +/// engine cannot expand `+js(...)` cosmetic rules, so `injected_script` is
 +/// always empty. Call once after `from_rules`.
 +#[no_mangle]
@@ -420,7 +388,7 @@ element-hiding.
 +        return NS_ERROR_INVALID_ARG;
 +    }
 +    let json = String::from_utf8_lossy(resources_json.as_ref()).to_string();
-+    let resources: Vec<adblock::resources::Resource> = match serde_json::from_str(&json) {
++    let resources: Vec<etp_engine::resources::Resource> = match serde_json::from_str(&json) {
 +        Ok(r) => r,
 +        Err(_) => return NS_ERROR_INVALID_ARG,
 +    };
@@ -432,7 +400,7 @@ element-hiding.
  #[no_mangle]
  pub unsafe extern "C" fn content_classifier_engine_destroy(
      engine: *mut ContentClassifierFFIEngine,
-@@ -125,6 +148,76 @@
+@@ -182,6 +205,76 @@ pub unsafe extern "C" fn content_classifier_engine_check_network_request_prepars
      NS_OK
  }
  
@@ -508,10 +476,12 @@ element-hiding.
 +
  struct SchemelessSiteResolver {}
  
- impl adblock::url_parser::ResolvesDomain for SchemelessSiteResolver {
+ impl etp_engine::url_parser::ResolvesDomain for SchemelessSiteResolver {
+diff --git a/toolkit/components/content-classifier/moz.build b/toolkit/components/content-classifier/moz.build
+index de8e73f761ae6765b0ab275def797eb9e186c887..c8cdb268d412a6b01106d50cc569bc9deba551a4 100644
 --- a/toolkit/components/content-classifier/moz.build
 +++ b/toolkit/components/content-classifier/moz.build
-@@ -28,6 +28,21 @@
+@@ -31,6 +31,21 @@ LOCAL_INCLUDES += [
  
  EXTRA_JS_MODULES += [
      "ContentClassifierRemoteSettingsClient.sys.mjs",
@@ -533,9 +503,11 @@ element-hiding.
  ]
  
  XPCOM_MANIFESTS += [
+diff --git a/toolkit/components/content-classifier/nsIContentClassifierService.idl b/toolkit/components/content-classifier/nsIContentClassifierService.idl
+index 3aa1bf2d5e0c548673571602cf2c073471923e93..49f95b18a1cc6e169828979c326139a29103a902 100644
 --- a/toolkit/components/content-classifier/nsIContentClassifierService.idl
 +++ b/toolkit/components/content-classifier/nsIContentClassifierService.idl
-@@ -10,7 +10,7 @@
+@@ -50,7 +50,7 @@ interface nsIContentClassifierProbeResult : nsISupports {
   * additions, updates, and removals. The service pulls the actual
   * bytes back from the client on demand via getListBytes().
   */
@@ -544,10 +516,11 @@ element-hiding.
  interface nsIContentClassifierService : nsISupports {
      /**
       * Notify the service of a batch of list changes. `aUpdated` lists
-@@ -27,6 +27,37 @@
+@@ -66,6 +66,37 @@ interface nsIContentClassifierService : nsISupports {
+     void onListsChanged(in Array<ACString> aUpdated,
                          in Array<ACString> aRemoved);
  
-     /**
++    /**
 +     * Provide the scriptlet/redirect resource library (a JSON-serialized
 +     * array of adblock-rust resources, uBO-derived) used to expand `+js(...)`
 +     * cosmetic rules into injectable scriptlets. Stored and applied to every
@@ -578,7 +551,6 @@ element-hiding.
 +                                   in Array<ACString> aExceptions,
 +                                   out Array<ACString> aSelectors);
 +
-+    /**
+     /**
       * Return the names of the content classifier features defined in
       * the static feature table. Each name identifies a feature whose
-      * filter list IDs are grouped into a single classification engine.

@@ -1,5 +1,5 @@
 # gjoa-patch:
-#   baseline-firefox: 152.0.1
+#   baseline-firefox: 160.0
 #   touches:
 #     - browser/components/moz.build
 #
@@ -8,11 +8,11 @@ DIRS entry, alphabetical placement between "genai" and "ipprotection".
 
 Gjoa component owns chrome:// registration and the chrome JS/CSS
 loader (GjoaLoader.sys.mjs) that replaces the fx-autoconfig pattern.
-
 diff --git a/browser/components/moz.build b/browser/components/moz.build
+index f9ac5091651c227177c275a236fd6c934996ce57..d28feadc654757d95cb5c88df282289561e7241b 100644
 --- a/browser/components/moz.build
 +++ b/browser/components/moz.build
-@@ -43,6 +43,7 @@ DIRS += [
+@@ -40,6 +40,7 @@ DIRS += [
      "extensions",
      "firefoxview",
      "genai",

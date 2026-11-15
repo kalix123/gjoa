@@ -1,5 +1,5 @@
 # gjoa-patch:
-#   baseline-firefox: 153.0.1
+#   baseline-firefox: 160.0
 #   touches:
 #     - servo/components/style/properties/computed_value_flags.rs
 #     - servo/components/style/style_adjuster.rs
@@ -35,10 +35,11 @@ accuracy:
   bright-island class) and a black authored surface stays dark instead of the
   band's near-white ceiling. bg-only hook => text/marks untouched; the
   size-dependent large-text halation ceiling stays in the paint-time text solve.
-
+diff --git a/layout/painting/nsDisplayList.cpp b/layout/painting/nsDisplayList.cpp
+index e765fab650e9c20c6fe05c81e1c4b6e4a701a678..c4a5aa89f0513e675db41250e34b055e54be682f 100644
 --- a/layout/painting/nsDisplayList.cpp
 +++ b/layout/painting/nsDisplayList.cpp
-@@ -3139,6 +3139,63 @@
+@@ -3166,6 +3166,63 @@ static nsDisplayBackgroundColor* CreateBackgroundColor(
                                                     aBgSC, aColor);
  }
  
@@ -102,7 +103,7 @@ accuracy:
  static void DealWithWindowsAppearanceHacks(nsIFrame* aFrame,
                                             nsDisplayListBuilder* aBuilder) {
    if (!XRE_IsParentProcess()) {
-@@ -3421,6 +3478,10 @@
+@@ -3448,6 +3505,10 @@ AppendedBackgroundType nsDisplayBackgroundImage::AppendBackgroundItemsToTop(
              nsDisplayItem::ContainerASRType::Constant));
    }
  
@@ -113,17 +114,19 @@ accuracy:
    if (!bgItemList.IsEmpty()) {
      aList->AppendToTop(&bgItemList);
      return AppendedBackgroundType::Background;
+diff --git a/servo/components/style/properties/computed_value_flags.rs b/servo/components/style/properties/computed_value_flags.rs
+index 2dcded88754efe84c9c26d1c98708a55b6be1474..b1530723d7ee7e6194a935e3c9d1d6ed2fa1d96c 100644
 --- a/servo/components/style/properties/computed_value_flags.rs
 +++ b/servo/components/style/properties/computed_value_flags.rs
-@@ -124,6 +124,20 @@
-         /// Whether grid-auto-flow is author-specified.
-         const HAS_AUTHOR_SPECIFIED_GRID_AUTO_FLOW = 1 << 23;
+@@ -125,6 +125,20 @@ bitflags! {
+         /// Whether grid-auto-flow is author/user-specified.
+         const HAS_AUTHOR_OR_USER_SPECIFIED_GRID_AUTO_FLOW = 1 << 23;
  
 +        /// gjoa dark mode: this element or an ancestor establishes a full-bleed
 +        /// raster image backdrop (a hero photo). The foreground-inversion hook
 +        /// reads this to preserve authored text over the image instead of
 +        /// flipping it blind, and the paint stage scrims such backdrops.
-+        const SELF_OR_ANCESTOR_HAS_IMAGE_BACKDROP = 1 << 24;
++        const SELF_OR_ANCESTOR_HAS_IMAGE_BACKDROP = 1 << 30;
 +
 +        /// gjoa dark mode: this element or an ancestor has an authored-DARK
 +        /// background-color the engine preserved dark under inversion (a dark
@@ -131,12 +134,12 @@ accuracy:
 +        /// inverted page; see style_adjuster). The foreground-inversion hook
 +        /// preserves authored-light inherited colors under it, so such regions
 +        /// keep their authored light-on-dark polarity.
-+        const SELF_OR_ANCESTOR_HAS_PRESERVED_DARK_BACKDROP = 1 << 25;
++        const SELF_OR_ANCESTOR_HAS_PRESERVED_DARK_BACKDROP = 1 << 31;
 +
          /// Whether this style has used font relative units. Note that this is different than the
          /// FONT_METRICS bits, which don't include rem / em etc.
-         const USES_FONT_RELATIVE_UNITS = 1 << 24;
-@@ -157,6 +171,8 @@
+         const USES_FONT_OR_WM_RELATIVE_UNITS = 1 << 24;
+@@ -164,6 +178,8 @@ impl ComputedValueFlags {
              | Self::SELF_OR_ANCESTOR_HAS_CONTAIN_STYLE
              | Self::SELF_OR_ANCESTOR_HAS_SIZE_CONTAINER_TYPE
              | Self::IS_IN_APPEARANCE_BASE_SUBTREE
@@ -145,9 +148,11 @@ accuracy:
      }
  
      /// Flags that may be propagated to descendants.
+diff --git a/servo/components/style/style_adjuster.rs b/servo/components/style/style_adjuster.rs
+index 27fdf42ee1f0852c21dff4474d51cd1018738d35..f3b636dee28f2d04f435fb6e54c727e468963c5e 100644
 --- a/servo/components/style/style_adjuster.rs
 +++ b/servo/components/style/style_adjuster.rs
-@@ -311,6 +311,177 @@
+@@ -307,6 +307,177 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
              self.style
                  .add_flags(ComputedValueFlags::SELF_OR_ANCESTOR_HAS_SIZE_CONTAINER_TYPE);
          }

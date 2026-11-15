@@ -1,5 +1,5 @@
 # gjoa-patch:
-#   baseline-firefox: 153.0.1
+#   baseline-firefox: 160.0
 #   touches:
 #     - servo/components/style/values/specified/color.rs
 #     - servo/components/style/device/gecko.rs
@@ -56,26 +56,26 @@ Dark and system-resolved-dark use adaptive pre-paint inversion:
   suppressed paints, and no black frame either.
 - PresShell.cpp: the one call site (ApplyHybridDefaultInvertIfThemeless), placed
   after the root frame is built and before painting is unsuppressed.
+diff --git a/docshell/base/BrowsingContext.cpp b/docshell/base/BrowsingContext.cpp
+index 76be93386d2950950127ee38fa3869bb1bcb95bf..0ebcf7a7a9080ef6c94086885b1fc3cda4d61fa6 100644
 --- a/docshell/base/BrowsingContext.cpp
 +++ b/docshell/base/BrowsingContext.cpp
-@@ -127,6 +127,11 @@
+@@ -130,6 +130,11 @@ struct ParamTraits<mozilla::dom::ForcedColorsOverride>
+     : public mozilla::dom::WebIDLEnumSerializer<
            mozilla::dom::ForcedColorsOverride> {};
  
- template <>
++template <>
 +struct ParamTraits<mozilla::dom::ColorInversionOverride>
 +    : public mozilla::dom::WebIDLEnumSerializer<
 +          mozilla::dom::ColorInversionOverride> {};
 +
-+template <>
+ template <>
  struct ParamTraits<mozilla::dom::PrefersReducedMotionOverride>
      : public mozilla::dom::WebIDLEnumSerializer<
-           mozilla::dom::PrefersReducedMotionOverride> {};
-@@ -3477,6 +3482,15 @@
-     return;
-   }
+@@ -3579,6 +3584,15 @@ void BrowsingContext::DidSet(FieldIndex<IDX_ForcedColorsOverride>,
    PresContextAffectingFieldChanged();
-+}
-+
+ }
+ 
 +void BrowsingContext::DidSet(FieldIndex<IDX_ColorInversionOverride>,
 +                             dom::ColorInversionOverride aOldValue) {
 +  MOZ_ASSERT(IsTop());
@@ -83,21 +83,26 @@ Dark and system-resolved-dark use adaptive pre-paint inversion:
 +    return;
 +  }
 +  PresContextAffectingFieldChanged();
- }
- 
++}
++
  void BrowsingContext::DidSet(FieldIndex<IDX_PrefersReducedMotionOverride>,
+                              dom::PrefersReducedMotionOverride aOldValue) {
+   MOZ_ASSERT(IsTop());
+diff --git a/docshell/base/BrowsingContext.h b/docshell/base/BrowsingContext.h
+index ba4d98522b7c936dcda2a2b8fbfa34d27de9df0c..d650865420d6c14f158366f6ae0b7ce8c778459b 100644
 --- a/docshell/base/BrowsingContext.h
 +++ b/docshell/base/BrowsingContext.h
-@@ -254,6 +254,8 @@
-   FIELD(PrefersReducedMotionOverride, dom::PrefersReducedMotionOverride)      \
-   /* DevTools override for forced-colors */                                   \
-   FIELD(ForcedColorsOverride, dom::ForcedColorsOverride)                      \
-+  /* gjoa per-document dark-mode engine-inversion override */                 \
-+  FIELD(ColorInversionOverride, dom::ColorInversionOverride)                  \
-   /* DevTools multiplier for animations playback rate */                      \
-   FIELD(AnimationsPlayBackRateMultiplier, double)                             \
-   /* prefers-color-scheme override based on the color-scheme style of our     \
-@@ -1110,6 +1112,10 @@
+@@ -290,6 +290,9 @@ struct EmbedderColorSchemes {
+   /* DevTools override for forced-colors */                                    \
+   FIELD(ForcedColorsOverride, dom::ForcedColorsOverride,                       \
+         {.mTopOnly = true, .mCanSet = CanSet::Unrestricted})                   \
++  /* gjoa per-document dark-mode engine-inversion override */                  \
++  FIELD(ColorInversionOverride, dom::ColorInversionOverride,                   \
++        {.mTopOnly = true, .mCanSet = CanSet::Unrestricted})                   \
+   /* DevTools override for prefers-contrast */                                 \
+   FIELD(PrefersContrastOverride, dom::PrefersContrastOverride,                 \
+         {.mTopOnly = true, .mCanSet = CanSet::Unrestricted})                   \
+@@ -1178,6 +1181,10 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
      return GetForcedColorsOverride();
    }
  
@@ -108,19 +113,7 @@ Dark and system-resolved-dark use adaptive pre-paint inversion:
    dom::PrefersReducedMotionOverride PrefersReducedMotionOverride() const {
      return GetPrefersReducedMotionOverride();
    }
-@@ -1338,6 +1344,11 @@
-     return IsTop();
-   }
- 
-+  bool CanSet(FieldIndex<IDX_ColorInversionOverride>, dom::ColorInversionOverride,
-+              ContentParent*) {
-+    return IsTop();
-+  }
-+
-   bool CanSet(FieldIndex<IDX_PrefersReducedMotionOverride>,
-               dom::PrefersReducedMotionOverride, ContentParent*) {
-     return IsTop();
-@@ -1367,6 +1378,9 @@
+@@ -1401,6 +1408,9 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
    void DidSet(FieldIndex<IDX_ForcedColorsOverride>,
                dom::ForcedColorsOverride aOldValue);
  
@@ -130,9 +123,11 @@ Dark and system-resolved-dark use adaptive pre-paint inversion:
    void DidSet(FieldIndex<IDX_PrefersReducedMotionOverride>,
                dom::PrefersReducedMotionOverride aOldValue);
  
+diff --git a/dom/chrome-webidl/BrowsingContext.webidl b/dom/chrome-webidl/BrowsingContext.webidl
+index f400fbc28978ea1ee7823bbc0a41e09353075f3c..87c72617c7cf098dbe3a5e13f9a058fa8c5f7204 100644
 --- a/dom/chrome-webidl/BrowsingContext.webidl
 +++ b/dom/chrome-webidl/BrowsingContext.webidl
-@@ -63,6 +63,13 @@
+@@ -63,6 +63,13 @@ enum ForcedColorsOverride {
    "active",
  };
  
@@ -146,7 +141,7 @@ Dark and system-resolved-dark use adaptive pre-paint inversion:
  /**
   * CSS prefers-reduced-motion values override.
   */
-@@ -255,6 +262,10 @@
+@@ -266,6 +273,10 @@ interface BrowsingContext {
    // Forced-colors simulation, for DevTools
    [SetterThrows] attribute ForcedColorsOverride forcedColorsOverride;
  
@@ -154,12 +149,14 @@ Dark and system-resolved-dark use adaptive pre-paint inversion:
 +  // actor on top BrowsingContexts; "none" defers to the global invert pref.
 +  [SetterThrows] attribute ColorInversionOverride colorInversionOverride;
 +
-   // Animation playbackRate multiplier, for Devtools
-   [SetterThrows] attribute double animationsPlayBackRateMultiplier;
+   // Contrast simulation, for DevTools.
+   [SetterThrows] attribute PrefersContrastOverride prefersContrastOverride;
  
+diff --git a/layout/base/PresShell.cpp b/layout/base/PresShell.cpp
+index f22d9718cbabe8dccffee7c6901a93826b55bf30..5755b9bdfe0db2f7ae75925068bde73e034c4ced 100644
 --- a/layout/base/PresShell.cpp
 +++ b/layout/base/PresShell.cpp
-@@ -1702,6 +1702,12 @@
+@@ -1719,6 +1719,12 @@ nsresult PresShell::Initialize() {
      NS_ENSURE_STATE(!mHaveShutDown);
    }
  
@@ -172,6 +169,8 @@ Dark and system-resolved-dark use adaptive pre-paint inversion:
    mDocument->MaybeScheduleRendering();
  
    NS_ASSERTION(rootFrame, "How did that happen?");
+diff --git a/layout/base/nsPresContext.cpp b/layout/base/nsPresContext.cpp
+index 9fcc7d7d0d1b0a4c1f1d1495c01c07406519e204..70bf2accbf94a9980be37f558a9d842b07fb3d66 100644
 --- a/layout/base/nsPresContext.cpp
 +++ b/layout/base/nsPresContext.cpp
 @@ -33,6 +33,7 @@
@@ -181,8 +180,8 @@ Dark and system-resolved-dark use adaptive pre-paint inversion:
 +#include "mozilla/RelativeLuminanceUtils.h"
  #include "mozilla/RestyleManager.h"
  #include "mozilla/SMILAnimationController.h"
- #include "mozilla/ServoBindings.h"
-@@ -70,6 +71,7 @@
+ #include "mozilla/ScrollContainerFrame.h"
+@@ -71,6 +72,7 @@
  #include "nsCOMPtr.h"
  #include "nsCRT.h"
  #include "nsCSSFrameConstructor.h"
@@ -190,7 +189,7 @@ Dark and system-resolved-dark use adaptive pre-paint inversion:
  #include "nsContentUtils.h"
  #include "nsDeviceContext.h"
  #include "nsDocShell.h"
-@@ -327,6 +329,7 @@
+@@ -328,6 +330,7 @@ nsPresContext::nsPresContext(dom::Document* aDocument, nsPresContextType aType)
  
    UpdateFontVisibility();
    UpdateForcedColors(/* aNotify = */ false);
@@ -198,7 +197,7 @@ Dark and system-resolved-dark use adaptive pre-paint inversion:
  }
  
  static const char* gExactCallbackPrefs[] = {
-@@ -340,6 +343,9 @@
+@@ -341,6 +344,9 @@ static const char* gExactCallbackPrefs[] = {
      "layout.css.text-autospace.enabled",
      "layout.css.text-transform.uppercase-eszett.enabled",
      "privacy.trackingprotection.enabled",
@@ -208,7 +207,7 @@ Dark and system-resolved-dark use adaptive pre-paint inversion:
      nullptr,
  };
  
-@@ -532,6 +538,14 @@
+@@ -533,6 +539,14 @@ void nsPresContext::PreferenceChanged(const char* aPrefName) {
    }
  
    nsDependentCString prefName(aPrefName);
@@ -223,7 +222,7 @@ Dark and system-resolved-dark use adaptive pre-paint inversion:
    if (prefName.EqualsLiteral("layout.css.dpi") ||
        prefName.EqualsLiteral("layout.css.devPixelsPerPx")) {
      int32_t oldAppUnitsPerDevPixel = mDeviceContext->AppUnitsPerDevPixel();
-@@ -772,6 +786,102 @@
+@@ -773,6 +787,102 @@ void nsPresContext::UpdateForcedColors(bool aNotify) {
    }
  }
  
@@ -326,15 +325,15 @@ Dark and system-resolved-dark use adaptive pre-paint inversion:
  bool nsPresContext::ForcingColors() const {
    return mForcedColors == StyleForcedColors::Active;
  }
-@@ -936,6 +1046,7 @@
-   }());
+@@ -959,6 +1069,7 @@ void nsPresContext::RecomputeBrowsingContextDependentData() {
+       browsingContext->GetEmbedderScrollbarInset(), AppUnitsPerDevPixel()));
  
    UpdateForcedColors();
 +  UpdateColorInversion();
  
    SetInRDMPane(top->GetInRDMPane());
  
-@@ -1647,9 +1758,24 @@
+@@ -1672,9 +1783,24 @@ nscolor nsPresContext::DefaultBackgroundColor() const {
    if (!GetBackgroundColorDraw()) {
      return NS_RGB(255, 255, 255);
    }
@@ -362,9 +361,11 @@ Dark and system-resolved-dark use adaptive pre-paint inversion:
  }
  
  nsDocShell* nsPresContext::GetDocShell() const {
+diff --git a/layout/base/nsPresContext.h b/layout/base/nsPresContext.h
+index 573a419c4ab3bc0e3a467b80dfe0193464d6004b..a1a7af49a6611efc22bc9749474f4d5a10b69214 100644
 --- a/layout/base/nsPresContext.h
 +++ b/layout/base/nsPresContext.h
-@@ -362,6 +362,10 @@
+@@ -361,6 +361,10 @@ class nsPresContext : public nsISupports,
    }
  
    mozilla::StyleForcedColors ForcedColors() const { return mForcedColors; }
@@ -375,7 +376,7 @@ Dark and system-resolved-dark use adaptive pre-paint inversion:
    bool ForcingColors() const;
  
    mozilla::ColorScheme DefaultBackgroundColorScheme() const;
-@@ -565,8 +569,14 @@
+@@ -564,8 +568,14 @@ class nsPresContext : public nsISupports,
    void SetInRDMPane(bool aInRDMPane);
    void UpdateInnerSizeSpoofedForRFP();
    void UpdateForcedColors(bool aNotify = true);
@@ -390,7 +391,7 @@ Dark and system-resolved-dark use adaptive pre-paint inversion:
    float GetFullZoom() { return mFullZoom; }
    /**
     * Device full zoom differs from full zoom because it gets the zoom from
-@@ -1440,6 +1450,18 @@
+@@ -1455,6 +1465,18 @@ class nsPresContext : public nsISupports,
    void LastRelease();
  
    void EnsureTheme();
@@ -409,9 +410,11 @@ Dark and system-resolved-dark use adaptive pre-paint inversion:
  
  #ifdef DEBUG
   private:
+diff --git a/servo/components/style/device/gecko.rs b/servo/components/style/device/gecko.rs
+index 16d494c85aed25aa10c13a5584797af98e3dd52d..36c1c4178dd98e1699dee6007df05d73fab93bac 100644
 --- a/servo/components/style/device/gecko.rs
 +++ b/servo/components/style/device/gecko.rs
-@@ -389,6 +389,30 @@
+@@ -396,6 +396,30 @@ impl Device {
              .map_or(ForcedColors::None, |pc| pc.mForcedColors)
      }
  
@@ -442,9 +445,11 @@ Dark and system-resolved-dark use adaptive pre-paint inversion:
      /// Computes a system color and returns it as an nscolor.
      pub(crate) fn system_nscolor(
          &self,
+diff --git a/servo/components/style/values/specified/color.rs b/servo/components/style/values/specified/color.rs
+index 7c9ccc098b77a65d52008f1762f874207b79a039..3f51389987967f3d8cfe0c9501442ddb705821fd 100644
 --- a/servo/components/style/values/specified/color.rs
 +++ b/servo/components/style/values/specified/color.rs
-@@ -868,6 +868,58 @@
+@@ -826,6 +826,58 @@ impl Color {
      }
  }
  
@@ -503,7 +508,7 @@ Dark and system-resolved-dark use adaptive pre-paint inversion:
  impl Color {
      /// Converts this Color into a ComputedColor.
      ///
-@@ -893,7 +945,7 @@
+@@ -851,7 +903,7 @@ impl Color {
              }};
          }
  
@@ -512,7 +517,7 @@ Dark and system-resolved-dark use adaptive pre-paint inversion:
              Color::CurrentColor => ComputedColor::CurrentColor,
              Color::Absolute(ref absolute) => {
                  let mut color = absolute.color;
-@@ -936,7 +988,46 @@
+@@ -895,7 +947,46 @@ impl Color {
              Color::InheritFromBodyQuirk => {
                  ComputedColor::Absolute(context.ok_or(())?.device().body_text_color())
              },

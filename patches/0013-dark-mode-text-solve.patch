@@ -1,5 +1,5 @@
 # gjoa-patch:
-#   baseline-firefox: 153.0.1
+#   baseline-firefox: 160.0
 #   touches:
 #     - layout/generic/GjoaDarkText.h
 #     - layout/generic/GjoaDarkText.cpp
@@ -15,65 +15,9 @@
 # applies it at nsTextPaintStyle::GetTextColor against the frozen effective
 # backdrop, so every glyph clears an APCA floor + stays under the halation ceiling
 # holding hue -- which 0009's blind Y->1-lum cannot guarantee.
-diff --git a/layout/generic/GjoaDarkText.h b/layout/generic/GjoaDarkText.h
-new file mode 100644
-index 0000000000000000000000000000000000000000..8f30b481fbe9bf06bad1c2b8dbcbfc3470c7ccaf
---- /dev/null
-+++ b/layout/generic/GjoaDarkText.h
-@@ -0,0 +1,50 @@
-+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-+/* gjoa dark-mode v2 (M3): OKLab/APCA paint-time text re-solve.
-+ *
-+ * Mirrors tools/darkmode-regress/colormath.cjs correct() exactly — Ottosson OKLab
-+ * + APCA SA98G, pure float math, C++-only (no crate, no Rust). The deterministic
-+ * bun test (tools/darkmode-regress/colormath.test.js) is the spec; keep in sync.
-+ *
-+ * Patch 0009 flips every resolved surface color by a FLOORLESS WCAG Y->1-lum
-+ * involution at Stylo (no #121212 surface floor — that floored "freeze onto the
-+ * dark ramp" is the unshipped M4/M5 step), so by paint time both the text color
-+ * AND the effective backdrop are already dark (just not floored). This RE-SOLVES
-+ * each text mark against that backdrop so it clears an APCA floor (and stays under
-+ * the halation ceiling) holding hue — which 0009's blind invert does not guarantee
-+ * (it can leave low-contrast dark-on-dark marks: the MIT bug). */
-+#ifndef mozilla_GjoaDarkText_h
-+#define mozilla_GjoaDarkText_h
-+
-+#include "nsColor.h"
-+
-+namespace mozilla {
-+
-+struct GjoaDarkText {
-+  // Return a recolored aFg whose APCA |Lc| against the (opaque, already-frozen)
-+  // aBgFrozen lands inside [aApcaFloor .. aCeiling], moving ONLY OKLCh lightness,
-+  // holding hue exactly, never adding chroma. Preserves aFg's alpha. If the
-+  // extreme cannot clear the floor (mid-gray backdrop caps contrast) it returns
-+  // the best achievable. aBgFrozen MUST be opaque (caller gates on alpha == 255).
-+  //
-+  // aClampLargeCeiling (M4a halation ceiling): the floor-lift search only moves
-+  // TOWARD the higher-contrast extreme, so a mark whose authored |Lc| already
-+  // exceeds aCeiling (band-mapped black #e4e4e4, or authored white on the dark
-+  // ramp) passes UNCHANGED — the pre-existing ceiling backstop is a no-op there
-+  // because its interpolation basis is that same extreme. When true, an ADDITIVE
-+  // pass pulls such a mark DOWN the OKLCh lightness axis toward the backdrop
-+  // (hue-held, chroma-held) until |Lc| <= aCeiling. Size-gated: callers pass true
-+  // ONLY for LARGE text (see IsLargeText). Body/small text passes false and the
-+  // floor-lift path is byte-identical to the pre-M4a operator.
-+  static nscolor Correct(nscolor aFg, nscolor aBgFrozen, float aApcaFloor,
-+                         float aCeiling, bool aClampLargeCeiling = false);
-+
-+  // APCA size×weight matrix (chief-engineer-verdict §3 A1): "large" text is the
-+  // halation set that must obey the ceiling; body/small text is exempt.
-+  static bool IsLargeText(float aCssPx, float aWeight) {
-+    return aCssPx >= 36.0f || (aCssPx >= 24.0f && aWeight >= 700.0f);
-+  }
-+};
-+
-+}  // namespace mozilla
-+
-+#endif  // mozilla_GjoaDarkText_h
 diff --git a/layout/generic/GjoaDarkText.cpp b/layout/generic/GjoaDarkText.cpp
 new file mode 100644
-index 0000000000000000000000000000000000000000..cafba416f9ee32eda17ca2aa8d3d31c33c4fc384
+index 0000000000000000000000000000000000000000..11ff493aec4841ce3794cd9bb592483512f31b1e
 --- /dev/null
 +++ b/layout/generic/GjoaDarkText.cpp
 @@ -0,0 +1,184 @@
@@ -261,11 +205,79 @@ index 0000000000000000000000000000000000000000..cafba416f9ee32eda17ca2aa8d3d31c3
 +}
 +
 +}  // namespace mozilla
+diff --git a/layout/generic/GjoaDarkText.h b/layout/generic/GjoaDarkText.h
+new file mode 100644
+index 0000000000000000000000000000000000000000..8cd2cc9e791f3d6d6b2833830d0ca94e28c35d98
+--- /dev/null
++++ b/layout/generic/GjoaDarkText.h
+@@ -0,0 +1,50 @@
++/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
++/* gjoa dark-mode v2 (M3): OKLab/APCA paint-time text re-solve.
++ *
++ * Mirrors tools/darkmode-regress/colormath.cjs correct() exactly — Ottosson OKLab
++ * + APCA SA98G, pure float math, C++-only (no crate, no Rust). The deterministic
++ * bun test (tools/darkmode-regress/colormath.test.js) is the spec; keep in sync.
++ *
++ * Patch 0009 flips every resolved surface color by a FLOORLESS WCAG Y->1-lum
++ * involution at Stylo (no #121212 surface floor — that floored "freeze onto the
++ * dark ramp" is the unshipped M4/M5 step), so by paint time both the text color
++ * AND the effective backdrop are already dark (just not floored). This RE-SOLVES
++ * each text mark against that backdrop so it clears an APCA floor (and stays under
++ * the halation ceiling) holding hue — which 0009's blind invert does not guarantee
++ * (it can leave low-contrast dark-on-dark marks: the MIT bug). */
++#ifndef mozilla_GjoaDarkText_h
++#define mozilla_GjoaDarkText_h
++
++#include "nsColor.h"
++
++namespace mozilla {
++
++struct GjoaDarkText {
++  // Return a recolored aFg whose APCA |Lc| against the (opaque, already-frozen)
++  // aBgFrozen lands inside [aApcaFloor .. aCeiling], moving ONLY OKLCh lightness,
++  // holding hue exactly, never adding chroma. Preserves aFg's alpha. If the
++  // extreme cannot clear the floor (mid-gray backdrop caps contrast) it returns
++  // the best achievable. aBgFrozen MUST be opaque (caller gates on alpha == 255).
++  //
++  // aClampLargeCeiling (M4a halation ceiling): the floor-lift search only moves
++  // TOWARD the higher-contrast extreme, so a mark whose authored |Lc| already
++  // exceeds aCeiling (band-mapped black #e4e4e4, or authored white on the dark
++  // ramp) passes UNCHANGED — the pre-existing ceiling backstop is a no-op there
++  // because its interpolation basis is that same extreme. When true, an ADDITIVE
++  // pass pulls such a mark DOWN the OKLCh lightness axis toward the backdrop
++  // (hue-held, chroma-held) until |Lc| <= aCeiling. Size-gated: callers pass true
++  // ONLY for LARGE text (see IsLargeText). Body/small text passes false and the
++  // floor-lift path is byte-identical to the pre-M4a operator.
++  static nscolor Correct(nscolor aFg, nscolor aBgFrozen, float aApcaFloor,
++                         float aCeiling, bool aClampLargeCeiling = false);
++
++  // APCA size×weight matrix (chief-engineer-verdict §3 A1): "large" text is the
++  // halation set that must obey the ceiling; body/small text is exempt.
++  static bool IsLargeText(float aCssPx, float aWeight) {
++    return aCssPx >= 36.0f || (aCssPx >= 24.0f && aWeight >= 700.0f);
++  }
++};
++
++}  // namespace mozilla
++
++#endif  // mozilla_GjoaDarkText_h
+diff --git a/layout/generic/moz.build b/layout/generic/moz.build
+index d078c5db6272261485c2d6a32fec94f53c49c975..991a0d7661b08b50c5d48d0347a04bd73caa8147 100644
+--- a/layout/generic/moz.build
++++ b/layout/generic/moz.build
+@@ -174,6 +174,7 @@ UNIFIED_SOURCES += [
+     "ColumnUtils.cpp",
+     "CSSAlignUtils.cpp",
+     "CSSOrderAwareFrameIterator.cpp",
++    "GjoaDarkText.cpp",
+     "MathMLTextRunFactory.cpp",
+     "MiddleCroppingBlockFrame.cpp",
+     "MozPrintCallbackRunner.cpp",
 diff --git a/layout/generic/nsTextPaintStyle.cpp b/layout/generic/nsTextPaintStyle.cpp
-index 269d3bc02de88b870d4d5ee383f02ca1b04d8dfa..a6aefccefc9cce1755220f6fa7231b71da979cb7 100644
+index 76cf1a27c659223acb8b3a9618cd5fcabc53ae47..edb3cc1f897a991a72c5a72c2a68bb1ee63d2b47 100644
 --- a/layout/generic/nsTextPaintStyle.cpp
 +++ b/layout/generic/nsTextPaintStyle.cpp
-@@ -10,6 +10,7 @@
+@@ -9,6 +9,7 @@
  #include "nsCSSColorUtils.h"
  #include "nsCSSRendering.h"
  #include "nsFrameSelection.h"
@@ -273,7 +285,7 @@ index 269d3bc02de88b870d4d5ee383f02ca1b04d8dfa..a6aefccefc9cce1755220f6fa7231b71
  #include "nsLayoutUtils.h"
  #include "nsStyleConsts.h"
  #include "nsTextFrame.h"
-@@ -104,8 +105,23 @@ nscolor nsTextPaintStyle::GetTextColor() {
+@@ -103,8 +104,23 @@ nscolor nsTextPaintStyle::GetTextColor() {
      }
    }
  
@@ -299,15 +311,3 @@ index 269d3bc02de88b870d4d5ee383f02ca1b04d8dfa..a6aefccefc9cce1755220f6fa7231b71
  }
  
  bool nsTextPaintStyle::GetSelectionColors(nscolor* aForeColor,
-diff --git a/layout/generic/moz.build b/layout/generic/moz.build
-index a0b95f0470cc661ad5316768cb637dadc9c8e449..fdbd8b364fa18f7044c02f45c426b6f34d61082e 100644
---- a/layout/generic/moz.build
-+++ b/layout/generic/moz.build
-@@ -173,6 +173,7 @@
-     "ColumnUtils.cpp",
-     "CSSAlignUtils.cpp",
-     "CSSOrderAwareFrameIterator.cpp",
-+    "GjoaDarkText.cpp",
-     "MathMLTextRunFactory.cpp",
-     "MiddleCroppingBlockFrame.cpp",
-     "nsBlockFrame.cpp",

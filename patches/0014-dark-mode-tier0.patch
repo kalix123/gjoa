@@ -1,5 +1,5 @@
 # gjoa-patch:
-#   baseline-firefox: 153.0.3
+#   baseline-firefox: 160.0
 #   touches:
 #     - layout/base/nsPresContext.cpp
 #     - layout/style/GeckoBindings.h
@@ -35,10 +35,10 @@
 # Tier-0 only -- the M4 band-clamp / halation ceiling is already handled by M3 (0013).
 #
 diff --git a/layout/base/nsPresContext.cpp b/layout/base/nsPresContext.cpp
-index d89fbba8d5..e496d65c9e 100644
+index 70bf2accbf94a9980be37f558a9d842b07fb3d66..92515ab86c3b280ac3ce9402c5cf99d9f634e49f 100644
 --- a/layout/base/nsPresContext.cpp
 +++ b/layout/base/nsPresContext.cpp
-@@ -851,10 +851,23 @@ void nsPresContext::UpdateColorInversion(bool aNotify) {
+@@ -852,10 +852,23 @@ void nsPresContext::UpdateColorInversion(bool aNotify) {
  // color. Only ApplyHybridDefaultInvertIfThemeless flips this document. If the page
  // did NOT author a dark theme -- background is light or transparent (the UA white
  // canvas shows through) -- flip the whole document to inverted pre-paint so it
@@ -66,7 +66,7 @@ index d89fbba8d5..e496d65c9e 100644
  void nsPresContext::ApplyHybridDefaultInvertIfThemeless() {
    if (mColorInversion || mHybridDefaultInvert) {
      return;  // already inverting: explicit override, global pref, or prior call
-@@ -874,8 +887,23 @@ void nsPresContext::ApplyHybridDefaultInvertIfThemeless() {
+@@ -875,8 +888,23 @@ void nsPresContext::ApplyHybridDefaultInvertIfThemeless() {
    }
    auto bg = nsCSSRendering::FindEffectiveBackgroundColor(
        frame, /* aStopAtThemed = */ true, /* aPreferBodyToCanvas = */ true);
@@ -93,10 +93,10 @@ index d89fbba8d5..e496d65c9e 100644
      mHybridDefaultInvert = true;
      UpdateColorInversion(/* aNotify = */ true);  // mColorInversion=true + restyle
 diff --git a/layout/style/GeckoBindings.cpp b/layout/style/GeckoBindings.cpp
-index ee784cef62..69057eac0f 100644
+index 42c7df6f3e00d73bcce265f35e7f5b0f6552a683..4edb23dc96689ca805c631572bc6638e82dd92a4 100644
 --- a/layout/style/GeckoBindings.cpp
 +++ b/layout/style/GeckoBindings.cpp
-@@ -702,6 +702,11 @@ bool Gecko_IsDarkColorScheme(const Document* aDoc,
+@@ -713,6 +713,11 @@ bool Gecko_IsDarkColorScheme(const Document* aDoc,
    return LookAndFeel::ColorSchemeForStyle(*aDoc, *aStyle) == ColorScheme::Dark;
  }
  
@@ -109,10 +109,10 @@ index ee784cef62..69057eac0f 100644
                                   const StyleColorSchemeFlags* aStyle) {
    auto colorScheme = LookAndFeel::ColorSchemeForStyle(*aDoc, *aStyle);
 diff --git a/layout/style/GeckoBindings.h b/layout/style/GeckoBindings.h
-index b8317e0062..11a8784817 100644
+index 486f2627f36c504ad835b3e4f238ef34532e6b15..75c52aee4068dd3a6177fb6fd79e3c41fdf41aef 100644
 --- a/layout/style/GeckoBindings.h
 +++ b/layout/style/GeckoBindings.h
-@@ -527,6 +527,7 @@ bool Gecko_IsDocumentBody(const mozilla::dom::Element* element);
+@@ -505,6 +505,7 @@ bool Gecko_IsDocumentBody(const mozilla::dom::Element* element);
  
  bool Gecko_IsDarkColorScheme(const mozilla::dom::Document*,
                               const mozilla::StyleColorSchemeFlags*);
@@ -121,10 +121,10 @@ index b8317e0062..11a8784817 100644
                                   const mozilla::dom::Document*,
                                   const mozilla::StyleColorSchemeFlags*);
 diff --git a/servo/components/style/device/gecko.rs b/servo/components/style/device/gecko.rs
-index 64130aeffb..cbde842929 100644
+index 36c1c4178dd98e1699dee6007df05d73fab93bac..1ae1bb6290182d70f2b9618da72364dad786b5a4 100644
 --- a/servo/components/style/device/gecko.rs
 +++ b/servo/components/style/device/gecko.rs
-@@ -413,6 +413,14 @@ impl Device {
+@@ -420,6 +420,14 @@ impl Device {
          self.pres_context().map_or(0.92, |pc| pc.mColorInversionCeilL)
      }
  

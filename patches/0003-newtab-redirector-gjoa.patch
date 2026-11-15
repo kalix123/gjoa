@@ -1,5 +1,5 @@
 # gjoa-patch:
-#   baseline-firefox: 152.0.1
+#   baseline-firefox: 160.0
 #   touches:
 #     - browser/components/newtab/AboutNewTabRedirector.sys.mjs
 #
@@ -10,10 +10,11 @@ activity-stream addon (defaultURL) and ignores newTabURL entirely. Both the
 parent/base and privileged-child newChannel paths now return a channel to
 the gjoa forced-dark navigator page for home + newtab, bypassing the
 activity-stream addon and the about:home startup cache.
-
+diff --git a/browser/components/newtab/AboutNewTabRedirector.sys.mjs b/browser/components/newtab/AboutNewTabRedirector.sys.mjs
+index 33ebe5111a15dcfba5c446efd1292cce4b29af34..ae152d1eb492668a0540cbec34d149daf481bc59 100644
 --- a/browser/components/newtab/AboutNewTabRedirector.sys.mjs
 +++ b/browser/components/newtab/AboutNewTabRedirector.sys.mjs
-@@ -537,15 +537,23 @@
+@@ -538,15 +538,23 @@ export class AboutNewTabRedirectorParent extends BaseAboutNewTabRedirector {
    }
  
    newChannel(uri, loadInfo) {
@@ -41,7 +42,7 @@ activity-stream addon and the about:home startup cache.
      let resultChannel = Services.io.newChannelFromURIWithLoadInfo(
        chromeURI,
        loadInfo
-@@ -592,33 +600,23 @@
+@@ -593,33 +601,23 @@ export class AboutNewTabRedirectorChild extends BaseAboutNewTabRedirector {
        );
      }
  

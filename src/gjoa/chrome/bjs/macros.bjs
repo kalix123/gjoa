@@ -40,7 +40,7 @@
 (defmacro key=
   [e Any
    k Any]
-  `(= (js/get e .key) ~k))
+  `(= (js/get ~e .key) ~k))
 (defmacro xul-new [tag Any]
   `(js/call document .createXULElement ~tag))
 
@@ -50,7 +50,7 @@
   [el Any
    name Any
    value Any]
-  `(js/call el .setAttribute ~name ~value))
+  `(js/call ~el .setAttribute ~name ~value))
 ;; NOTE: mi/sep expand to primitives (not the xul-new/attr! macros) so any
 ;; consumer of mi/sep need not also :refer those macros. beagle's syntax-quote
 ;; is non-hygienic (does not namespace-qualify symbols), so a macro that expands
@@ -71,7 +71,7 @@
    guard-name Any
    action Any]
   `(if (not (key-enabled ~guard-name)) false
-     (do (js/call e .preventDefault) (js/call e .stopImmediatePropagation)
+     (do (js/call ~e .preventDefault) (js/call ~e .stopImmediatePropagation)
          ~action true)))
 (defmacro with-ctx
   [row-binding Any
@@ -94,7 +94,7 @@
   [el Any
    event Any
    handler Any]
-  `(js/call el .addEventListener ~event ~handler))
+  `(js/call ~el .addEventListener ~event ~handler))
 ;; Register a once-listener. For window "unload" handlers this ALSO pushes the
 ;; handler into the loader's hot-reload teardown registry (window.__gjoaHR) — so
 ;; a dev chrome-bundle change tears the bundle down + re-runs it cleanly, and no
@@ -132,16 +132,16 @@
 (defmacro has?
   [el Any
    name Any]
-  `(js/call el .hasAttribute ~name))
+  `(js/call ~el .hasAttribute ~name))
 (defmacro rmattr!
   [el Any
    name Any]
-  `(js/call el .removeAttribute ~name))
+  `(js/call ~el .removeAttribute ~name))
 (defmacro toggle!
   [el Any
    name Any
    value Any]
-  `(js/call el .toggleAttribute ~name ~value))
+  `(js/call ~el .toggleAttribute ~name ~value))
 (defmacro undef-or
   [val Any
    fallback Any]
@@ -149,22 +149,22 @@
 (defmacro css!
   [el Any
    text Any]
-  `(js/set! (js/get el .style) .cssText ~text))
+  `(js/set! (js/get ~el .style) .cssText ~text))
 (defmacro onc!
   [el Any
    event Any
    handler Any]
-  `(js/call el .addEventListener ~event ~handler true))
+  `(js/call ~el .addEventListener ~event ~handler true))
 (defmacro off!
   [el Any
    event Any
    handler Any]
-  `(js/call el .removeEventListener ~event ~handler))
+  `(js/call ~el .removeEventListener ~event ~handler))
 (defmacro offc!
   [el Any
    event Any
    handler Any]
-  `(js/call el .removeEventListener ~event ~handler true))
+  `(js/call ~el .removeEventListener ~event ~handler true))
 (defmacro tabs! []
   `(Array/from (js/get gBrowser .tabs)))
 (defmacro by-id [id Any]
@@ -172,11 +172,11 @@
 (defmacro q
   [el Any
    sel Any]
-  `(js/call el .querySelector ~sel))
+  `(js/call ~el .querySelector ~sel))
 (defmacro qa
   [el Any
    sel Any]
-  `(js/call el .querySelectorAll ~sel))
+  `(js/call ~el .querySelectorAll ~sel))
 ;; ---- error handling ----
 ;; guard!: run body, log+swallow any throw. quiet!: run body, swallow silently
 ;; and return `fallback`. Both expand to primitives (try/do/catch) — `console`

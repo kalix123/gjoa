@@ -1,0 +1,129 @@
+{
+  "//": "Chrome bundles injected into browser.xhtml by GjoaLoader. Keep in sync with jar.mn and PROD_SCRIPTS/PROD_STYLES in GjoaLoader.sys.mjs.",
+  "scripts": [
+    {
+      "out": "gjoa-security.uc.js",
+      "banner": [
+        "// ==UserScript==",
+        "// @name           Gjoa Security Gate",
+        "// @description    Refuses to keep running if Firefox pin is stale",
+        "// @include        main",
+        "// ==/UserScript=="
+      ],
+      "files": [
+        "security/index.mjs"
+      ]
+    },
+    {
+      "out": "gjoa-drawer.uc.js",
+      "banner": [
+        "// ==UserScript==",
+        "// @name           Gjoa Drawer",
+        "// @description    Manages sidebar layout, compact mode, and toolbar positioning",
+        "// @include        main",
+        "// ==/UserScript=="
+      ],
+      "files": [
+        "tabs/log.mjs",
+        "drawer/timing.mjs",
+        "drawer/focus.mjs",
+        "drawer/banner.mjs",
+        "drawer/compact.mjs",
+        "drawer/drag-overlay.mjs",
+        "drawer/layout.mjs",
+        "drawer/sidebar-button.mjs",
+        "drawer/omni-icon.mjs",
+        "drawer/urlbar.mjs",
+        "drawer/index.mjs"
+      ]
+    },
+    {
+      "out": "gjoa-tabs.uc.js",
+      "banner": [
+        "// ==UserScript==",
+        "// @name           Gjoa Tabs",
+        "// @description    Tree-style tab panel with vim keybindings",
+        "// @include        main",
+        "// ==/UserScript=="
+      ],
+      "files": [
+        "tabs/log.mjs",
+        "tabs/types.mjs",
+        "tabs/constants.mjs",
+        "tabs/state.mjs",
+        "firefox/dom.mjs",
+        "firefox/files.mjs",
+        "firefox/observers.mjs",
+        "firefox/prefs.mjs",
+        "firefox/tabs.mjs",
+        "firefox/window.mjs",
+        "tabs/helpers.mjs",
+        "tabs/snapshot.mjs",
+        "tabs/history.mjs",
+        "spaces/types.mjs",
+        "spaces/visibility.mjs",
+        "spaces/manager.mjs",
+        "spaces/niri.mjs",
+        "platform/scheduler.mjs",
+        "platform/window-tabs.mjs",
+        "platform/window.mjs",
+        "platform/history.mjs",
+        "platform/cross-window-tabs.mjs",
+        "platform/index.mjs",
+        "tabs/layout.mjs",
+        "tabs/rows.mjs",
+        "tabs/drag.mjs",
+        "tabs/menu.mjs",
+        "tabs/events.mjs",
+        "tabs/picker.mjs",
+        "tabs/content-focus.mjs",
+        "tabs/vim.mjs",
+        "tabs/index.mjs"
+      ]
+    },
+    {
+      "out": "gjoa-dark-mode.uc.js",
+      "banner": [
+        "// ==UserScript==",
+        "// @name           Gjoa Dark Mode",
+        "// @description    Chrome-level dark mode: native color-scheme override + engine inversion",
+        "// @include        main",
+        "// ==/UserScript=="
+      ],
+      "files": [
+        "dark-mode/index.mjs"
+      ]
+    },
+    {
+      "out": "gjoa-blocking.uc.js",
+      "banner": [
+        "// ==UserScript==",
+        "// @name           Gjoa Blocking",
+        "// @description    Native ad/tracker blocking: engine enable/disable + per-site allow-list",
+        "// @include        main",
+        "// ==/UserScript=="
+      ],
+      "files": [
+        "blocking/index.mjs"
+      ]
+    },
+    {
+      "out": "gjoa-theme.uc.js",
+      "banner": [
+        "// ==UserScript==",
+        "// @name           Gjoa Theme",
+        "// @description    Chrome-theme variant selector: stamps :root[gjoa-theme] from gjoa.theme.variant (base16 token-set swap)",
+        "// @include        main",
+        "// ==/UserScript=="
+      ],
+      "files": [
+        "theme/index.mjs"
+      ]
+    }
+  ],
+  "styles": [
+    "gjoa.uc.css",
+    "gjoa-tabs.uc.css",
+    "gjoa-which-key.uc.css"
+  ]
+}

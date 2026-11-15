@@ -1,0 +1,131 @@
+// gjoa dark mode prefs — chrome-level dark mode defaults.
+// Shipped as DEFAULTS by appending the COMPILED output of this file onto the
+// branding pref file in tools/prep/branding.bjs at import time (the only pref
+// channel packaged into omni.ja without a Mozilla-source patch). `;;` comments
+// don't survive the beagle→js emit, so the packaged pref file carries only the
+// pref() statements; the rationale lives here in source.
+
+// Master toggle: enables/disables dark mode entirely. ON by default — gjoa is a
+// dark-first browser, so a white site (e.g. YouTube) out of the box is wrong.
+// The default mode forces prefers-color-scheme:dark so sites with native dark
+// themes render them and engine-inverts sites without one.
+pref("gjoa.darkmode.enabled", true);
+
+// Mode selector (gjoa.darkmode.mode). Four surfaced modes, strongest-opinion -> none;
+// each name expresses its current behavior directly:
+//   "dark"    — DEFAULT. Forces prefers-color-scheme:dark so native-dark sites use
+//               their OWN theme; the engine pre-paint default-inverts themeless pages
+//               (no flash) and the GjoaDarkmode actor refines per-site. The ONLY mode
+//               where the user.* per-site lists below are live. Dark on ANY OS.
+//   "uniform" — Forces prefers-color-scheme:light, then the ENGINE luminance-inverts
+//               every absolute color into the Darkness band (servo cascade hook, cached
+//               in ComputedValues, raster media untouched). One controlled dark over
+//               ALL sites, even native-dark ones. The performant Dark-Reader-style answer.
+//   "system"  — Conventional follow-OS (what Chrome/Firefox/Safari mean): content tracks
+//               the real OS theme both ways, each site decides via prefers-color-scheme,
+//               gjoa adds NO inversion. NOT dark-first.
+//   "off"     — dark mode disabled (same render as "system"; also flips enabled=false so
+//               the engine is parked, not just pass-through).
+// The live default here must match chrome/bjs/dark-mode/index.bjs.
+pref("gjoa.darkmode.mode", "dark");
+
+// OVERRIDE / FORCE toggle — the coverage guarantee. When true, the GjoaDarkmode
+// content actor marks EVERY page's colorInversionOverride 'active' (force-invert)
+// at document-start, except hosts on the user.off / user.force-native exclude lists.
+// Because the engine reads that per-document override BEFORE its color-scheme
+// detection, this forces sites that DECLARE a color-scheme (GitHub, logged-in
+// YouTube) — which the engine would otherwise skip and leave light — fully dark.
+// This is what makes "dark mode on = every site dark, no exceptions" actually true.
+// Paired with mode/invert by the controller (apply!): set on in the force appearance.
+pref("gjoa.darkmode.force", false);
+
+// Engine-level luminance-inversion flag. Set by the dark-mode chrome module for
+// uniform mode; read by nsPresContext::UpdateColorInversion to drive the Servo
+// cascade hook. Default off; the chrome module owns it (in dark mode the
+// per-document BrowsingContext.colorInversionOverride drives inversion instead).
+// NOT a user knob — the controller (apply!) sets it on every mode change, so it is
+// deliberately kept out of about:gjoa (it would lie: any reapply overwrites a hand
+// toggle). Tune mode via gjoa.darkmode.mode instead.
+pref("gjoa.darkmode.invert.enabled", false);
+
+// Engine pre-paint default-invert flag (dark and system-dark modes). Read by
+// nsPresContext so a themeless page renders dark from frame 1 (no white flash),
+// retracted pre-paint per-document for sites that authored their own dark theme.
+// Set by the dark-mode chrome module (set-default-invert! in index.bjs) — this
+// default makes the pref a real, backed pref (so a fresh profile / the engine read
+// has a defined value before the chrome module first runs), matching the controller
+// default (off until dark or dark-OS system engages it). Not a user knob.
+pref("gjoa.darkmode.hybrid.default-invert", false);
+
+// "Darkness" knob — how dark un-themed pages get under engine inversion. This is
+// the floor of the OKLCH-L band the servo inverter compresses page lightness onto
+// (nsPresContext::UpdateColorInversion reads it; the cascade hook applies it).
+// Unit is an intuitive 0-100 perceptual percent == OKLCH lightness * 100. The
+// brightest page color (white) maps to THIS lightness, so LOWER = darker page
+// backgrounds. Default 16 -> OKLCH L 0.16 -> a neutral ~#0d0d0d: a deep, low-grey
+// dark, deliberately not pure black. The compression preserves hue, chroma,
+// and alpha; only lightness moves.
+pref("gjoa.darkmode.invert.bgLightness", 16);
+
+// Ceiling of the same OKLCH-L band: the lightest result the inverter produces. The
+// darkest page color (black) maps to THIS lightness, so this is the brightness of
+// light text / surfaces on a dark page. Same 0-100 == OKLCH L*100 unit. Default
+// 92 -> OKLCH L 0.92 -> a neutral ~#e4e4e4: a comfortable light, deliberately NOT
+// pure white (full white is harsh on a dark backdrop). Raise toward 100 for higher-
+// contrast text, lower for a softer, dimmer page. Most users only touch bgLightness
+// ("Darkness"); this is the advanced companion.
+pref("gjoa.darkmode.invert.fgLightness", 92);
+
+// Per-site dark-mode overrides (comma-separated host lists), applied in dark
+// mode by GjoaDarkmodeParent. Precedence: off > force-invert > force-native >
+// auto. force-native = keep the site's look (never invert); force-invert =
+// always invert; off = no inversion for that site.
+pref("gjoa.darkmode.user.force-native", "");
+pref("gjoa.darkmode.user.force-invert", "");
+pref("gjoa.darkmode.user.off", "");
+
+// Dark-mode scrim opacity (0-255 alpha). When the engine flags an element as a
+// full-bleed image backdrop (a hero photo) under inversion, the paint stage lays
+// a translucent black scrim over its background images so preserved (un-inverted)
+// authored text reads against the still-bright photo. ~0.55 alpha. Read in C++ via
+// Preferences::GetInt at display-list build, so it's live-tunable (re-render to apply).
+pref("gjoa.darkmode.scrim.alpha", 140);
+
+// Async pass-2 image-analysis refinement, applied by GjoaDarkmodeChild AFTER the
+// engine scrim has already made the page correct. When ON, the content actor
+// rasterizes visible background-image url()s to a 32x32 canvas, classifies their
+// brightness (Dark Reader thresholds), and refines per-image: hides large light
+// opaque backdrops, inverts small dark transparent ones, replaces near-solid light
+// ones with a darkened solid. DEFAULT OFF — this is unverified polish on top of the
+// engine scrim (the correctness floor); off means the actor does NOTHING here.
+pref("gjoa.darkmode.image-analysis.enabled", false);
+
+// Large-media dimming (GjoaDarkmodeChild). On an INVERTED page, replaced media
+// (<img>/<video>/<canvas>) and large background-image heroes are exempt from engine
+// inversion (a negative photo is worse than a bright one), so a big bright hero — e.g.
+// amazon's promo banner — keeps the page reading light. This tones large media down with
+// a brightness() filter (NOT an invert, so no negatives), size-gated so icons/thumbnails
+// are untouched. 0-100 percent brightness; 0 disables. Default 55. The actor reads this
+// with a code default of 55, so it is live even before this baked default applies.
+pref("gjoa.darkmode.media-dim.pct", 55);
+
+// Backdrop-aware APCA contrast normalization (GjoaDarkmode actor pass-3). After the
+// inversion state settles, the content actor walks visible text, the parent
+// drawSnapshots the REAL composited content and computes a corrective tone for any
+// text that fails the APCA floor against its true backdrop (re-polarized, hue held,
+// pre-inverted when the engine is inverting this doc), and the child applies it. This
+// is the guarantee that NO text renders below the readability floor — the
+// "no black-on-black ever" backstop. Validated by tools/darkmode-regress (the suite
+// measures with the same APCA math). DEFAULT ON: without it the engine inversion
+// alone leaves sub-floor text on real pages — measured on news.mit.edu, 7 of 9 text
+// elements were black-on-black with this off and 0 with it on. It was the missing
+// backstop behind the recurring "dark mode is unreadable" reports. (Cost: one
+// drawSnapshot + per-text APCA at DOMContentLoaded on inverted pages.)
+// ON v2 2026-06-28: _correct now returns NEUTRAL near-white (white on dark / black on light,
+// not the minimal-floor grey that dimmed bestbuy's heading) and #maybeNormalizeContrast
+// re-runs once at +3.2s to catch SPA-late text (canva hero). Bright + neutral (no purple) +
+// SPA-aware. Fixes dark-on-dark / low-contrast text.
+pref("gjoa.darkmode.normalize.enabled", true);
+// APCA Lc floor the normalizer enforces (45 ≈ large/secondary text; raise toward 60
+// for stricter body-text contrast). Below this, text gets re-toned.
+pref("gjoa.darkmode.normalize.floor", 45);

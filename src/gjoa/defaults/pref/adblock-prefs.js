@@ -1,0 +1,36 @@
+// gjoa native ad/tracker blocking — default prefs.
+// Shipped as DEFAULTS by compiling this file and appending its pref() output
+// onto the branding pref file (firefox-branding.js) in tools/prep/branding.bjs
+// — the only pref channel packaged into omni.ja without a Mozilla-source patch.
+// (`;;` comments don't survive the beagle→js emit; rationale lives here.)
+
+// Master switch for the in-engine adblock-rust content classifier. ON by
+// default — native, third-party ad/tracker blocking with no extension. The C++
+// service only constructs our RS-client overlay (which loads the lists) when
+// this is true AND list_names is non-empty, so the two are co-dependent.
+pref("privacy.trackingprotection.content.protection.enabled", true);
+
+// Which stored lists the engine uses for BLOCKING. Each token must match a
+// setFilterListData() name our overlay pushes: easylist + easyprivacy + uBO's
+// own filter set (the fetched lists — uBO's carry the `+js()` scriptlet rules)
+// and gjoa-allow (the synthetic per-site exception list, always present so the
+// allow engine exists even when empty). MUST be non-empty or the overlay is
+// never invoked.
+pref("privacy.trackingprotection.content.protection.list_names", "easylist,easyprivacy,ublock-filters,ublock-badware,ublock-privacy,ublock-quick-fixes,ublock-unbreak,ublock-resource-abuse,gjoa-allow");
+
+// We want blocking, not annotation — keep the annotation pathway off (empty
+// annotation.list_names ⇒ no annotation engines regardless).
+pref("privacy.trackingprotection.content.annotation.enabled", false);
+
+// gjoa-side UI state. enabled mirrors protection.enabled via the blocking chrome
+// module; allow-hosts is the CSV the overlay turns into @@ exception rules.
+pref("gjoa.contentblock.enabled", true);
+pref("gjoa.contentblock.user.allow-hosts", "");
+
+// Curated-only scriptlet policy (security finding F2). When false (default), only
+// gjoa's hand-vetted curated scriptlets run; the engine's general list-driven
+// `+js()` expansion (arbitrary uBO-list JS into the page main world) stays OFF.
+pref("gjoa.contentblock.scriptlets.listDriven.enabled", false);
+
+// Keep the overlay's logging quiet by default (Error/Warn only).
+pref("privacy.trackingprotection.content.remote_settings.loglevel", "Warn");

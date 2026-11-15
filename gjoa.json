@@ -4,12 +4,12 @@
   "binaryName": "gjoa",
   "appId": "gjoa",
   "vendor": "tompassarelli",
-  "displayVersion": "0.4.6",
+  "displayVersion": "0.5.0",
   "license": "MPL-2.0",
   "github": "tompassarelli/gjoa",
   "firefox": {
-    "version": "153.0.3",
-    "candidate": "153.0.3",
+    "version": "160.0",
+    "candidate": "160.0",
     "candidateBuild": 1
   },
   "branding": {

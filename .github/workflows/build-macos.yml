@@ -23,7 +23,7 @@ jobs:
     runs-on: ${{ inputs.fast && 'blacksmith-6vcpu-macos-26' || 'macos-26' }}
     timeout-minutes: 300
     env:
-      FF_VERSION: "153.0.3"
+      FF_VERSION: "160.0"
     steps:
       - uses: actions/checkout@v4
 

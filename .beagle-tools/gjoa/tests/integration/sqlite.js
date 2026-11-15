@@ -1,0 +1,7 @@
+
+const PROBE_SCRIPT = "\n        const cb = arguments[arguments.length - 1];\n        (async () => {\n          const { Sqlite } = ChromeUtils.importESModule(\"resource://gre/modules/Sqlite.sys.mjs\");\n          const conn = await Sqlite.openConnection({ path: \":memory:\" });\n          let version = \"?\";\n          try {\n            const rows = await conn.execute(\"SELECT sqlite_version() AS v\");\n            version = rows[0]?.getResultByName(\"v\") ?? \"?\";\n          } catch (e) {\n            version = \"error: \" + e.message;\n          }\n          let fts3 = \"?\";\n          try {\n            await conn.execute(\"CREATE VIRTUAL TABLE t3 USING fts3(x)\");\n            fts3 = \"ok\";\n          } catch (e) {\n            fts3 = e.message;\n          }\n          let fts5 = \"?\";\n          try {\n            await conn.execute(\"CREATE VIRTUAL TABLE t5 USING fts5(x)\");\n            fts5 = \"ok\";\n          } catch (e) {\n            fts5 = e.message;\n          }\n          try { await conn.close(); } catch {}\n          cb({ version, fts3, fts5 });\n        })().catch(e => cb({ version: \"?\", fts3: \"?\", fts5: \"ERROR: \" + (e.message || e) }));\n      ";
+
+export const tests = [{name: "sqlite: report version + FTS3/FTS5 availability", run: async (mn) => { const probe = await mn.executeAsyncScript(PROBE_SCRIPT);
+return console.error("[sqlite probe]", JSON.stringify(probe, null, 2)); }}];
+
+export default tests;

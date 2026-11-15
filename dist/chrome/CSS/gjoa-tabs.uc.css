@@ -1,0 +1,779 @@
+/* ==UserScript==
+// @name           gjoa-tabs
+// @description    Sidebar tab panel styles
+// @include        main
+// ==/UserScript== */
+
+/* Tab-panel styles. Loaded by gjoa loader; targets DOM built by
+ * gjoa-tabs.uc.js. Overwritten on update — do not edit. */
+
+
+/* #region sidebar containers */
+
+/* Hide native vertical tab strip — we render our own panel. */
+#vertical-tabs { display: none !important; }
+
+/* Active-space header — workspace identifier above the tab list.
+ *
+ * Plain text. No dot marker, no chevron — just the space name. Both
+ * created visual nesting cues that misled users into reading the tab
+ * list below as "children" of the header. Click still opens the
+ * spaces picker (handled in tabs/index.ts).
+ *
+ * Aligned to --gjoa-sidebar-inset so the label sits on the same
+ * vertical content rail as the top-row icons. */
+#gjoa-space-header {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  margin: 8px var(--gjoa-sidebar-inset, 10px) 4px var(--gjoa-sidebar-inset, 10px) !important;
+  padding: 4px 8px !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  -moz-user-focus: ignore !important;
+  transition: background-color 120ms ease !important;
+}
+#gjoa-space-header-label {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+  color: color-mix(in oklab, currentColor 80%, transparent) !important;
+  margin: 0 !important;
+}
+#gjoa-space-header:hover {
+  background: color-mix(in oklab, currentColor 8%, transparent) !important;
+}
+#gjoa-space-header:hover #gjoa-space-header-label {
+  color: currentColor !important;
+}
+/* Icons-only (collapsed sidebar): hide — no room for a text identifier. */
+#gjoa-space-header[gjoa-icons-only] {
+  display: none !important;
+}
+
+/* `#sidebar-container > sidebar-main` styling lives in gjoa.css under
+ * #region sidebar-main — kept there because it's chrome restructuring,
+ * not tab-panel concern. */
+
+/* #endregion sidebar containers */
+
+
+/* #region tab panel */
+
+#gjoa-tab-panel {
+  flex: 1 !important;
+  max-height: 74%;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  scrollbar-width: thin;
+  /* Explicit opaque bg so a translucent ancestor / compositor blur can't
+   * paint through the panel even if #sidebar-container's bg got clobbered. */
+  background-color: var(--gjoa-surface-0);
+}
+#gjoa-tab-panel:focus { outline: none; }
+
+/* Icons-only mode (collapsed sidebar layout) */
+/* Icons-only sidebar (collapsed): force both the pinned and panel containers
+ * to flex-column with explicit width so 24px children center reliably. The
+ * min-width pushes the parent #sidebar-container wider than the bare 32px row,
+ * giving the strip horizontal breathing room. :not([hidden]) lets an empty pinned
+ * container stay hidden when there are no pinned tabs. */
+:is(#gjoa-pinned-container, #gjoa-tab-panel)[gjoa-icons-only]:not([hidden]) {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  width: 100% !important;
+  min-width: 50px !important;
+  /* +2px row margin puts the first glyph 16px below the panel edge — the
+   * icon-to-icon gap the eye reads (pitch 28 − 16px favicon), plus the extra
+   * notch a hard container edge needs to stop looking jammed. */
+  padding-top: 10px !important;
+}
+
+#gjoa-tab-panel[gjoa-icons-only] .gjoa-tab-label,
+#gjoa-tab-panel[gjoa-icons-only] .gjoa-tab-chevron {
+  display: none !important;
+}
+#gjoa-tab-panel[gjoa-icons-only] .gjoa-group-row {
+  display: none !important;
+}
+#gjoa-tab-panel[gjoa-icons-only] .gjoa-tab-row {
+  width: 20px;
+  height: 20px;
+  padding: 2px !important;
+  padding-inline-start: 2px !important;
+  justify-content: center;
+  margin: 2px 0;
+  min-height: unset;
+  box-sizing: content-box;
+}
+#gjoa-tab-panel[gjoa-icons-only] .gjoa-tab-icon {
+  margin: 0;
+}
+
+#gjoa-tab-spacer {
+  min-height: 20px;
+  -moz-window-dragging: drag;
+}
+
+/* #endregion tab panel */
+
+
+/* #region pinned tabs — vertical list above the unpinned tree, floating divider */
+
+/* No `display: flex` here — keep the XUL vbox default so the container
+ * stretches to the full sidebar width like #gjoa-tab-panel does. Rows center
+ * themselves via `margin: 2px auto` in icons-only mode (see below).
+ * Horizontal mode and empty-zone state override `display` explicitly. */
+#gjoa-pinned-container {
+  /* No padding. The urlbar-toolbar (gjoa.css) owns the gap above the
+   * first row; the divider's `::after` y-margin owns the gap below. So
+   * showing/hiding the pinned container can't shift the tab list. */
+  padding: 0;
+  background-color: var(--gjoa-surface-0);
+}
+#gjoa-pinned-container[hidden] {
+  display: none !important;
+}
+/* Floating divider: thin inset line between pinned and unpinned tab
+ * areas. Hidden when the pinned container has no rows — there's nothing
+ * to separate. */
+#gjoa-pinned-container:has(.gjoa-tab-row)::after {
+  content: "";
+  display: block;
+  height: 1px;
+  /* Y-margin matches the urlbar-toolbar's 12px so the divider sits at a
+   * consistent rhythm; X-margin stays at the sidebar inset. */
+  margin: 12px var(--gjoa-sidebar-inset);
+  background: color-mix(in srgb, currentColor 15%, transparent);
+}
+/* In icons-only mode the container is `align-items: center` so flex items
+ * size to content — the empty ::after would be 0-width. Stretch it back. */
+#gjoa-pinned-container[gjoa-icons-only]::after {
+  align-self: stretch;
+}
+
+/* Drag of an unpinned row reveals an otherwise-hidden (empty) pinned section as a
+ * thin strip, so "drop to pin" has a target with no pinned tab already present.
+ * tabs/drag.bjs sets/clears the attribute across dragstart..dragend. */
+#gjoa-pinned-container[gjoa-drop-strip] {
+  min-height: 24px;
+  outline: 1px dashed color-mix(in srgb, currentColor 30%, transparent);
+  outline-offset: -2px;
+}
+
+/* Icons-only sidebar — match the tree panel's icons-only treatment so pinned
+ * and unpinned rows collapse identically. */
+#gjoa-pinned-container[gjoa-icons-only] .gjoa-tab-label,
+#gjoa-pinned-container[gjoa-icons-only] .gjoa-tab-chevron {
+  display: none !important;
+}
+#gjoa-pinned-container[gjoa-icons-only] .gjoa-tab-row {
+  width: 20px;
+  height: 20px;
+  padding: 2px !important;
+  padding-inline-start: 2px !important;
+  justify-content: center;
+  margin: 2px 0;
+  min-height: unset;
+  box-sizing: content-box;
+}
+#gjoa-pinned-container[gjoa-icons-only] .gjoa-tab-icon {
+  margin: 0;
+}
+
+
+/* #endregion pinned tabs */
+
+
+/* #region rows */
+
+/* Shared row base */
+.gjoa-tab-row, .gjoa-group-row {
+  padding: 6px 8px;
+  padding-inline-end: 6px;
+  border-radius: 4px;
+  margin: 2px var(--gjoa-sidebar-inset);
+  min-height: 28px;
+  cursor: default;
+  transition: padding-inline-start 0.15s ease;
+}
+
+/* Horizontal mode: bump horizontal gap between adjacent tabs (axis flips —
+ * stacking is left-to-right, so spacing lives on the inline axis). */
+:is(#gjoa-tab-panel, #gjoa-pinned-container)[gjoa-horizontal] :is(.gjoa-tab-row, .gjoa-group-row) {
+  margin: 0 2px;
+}
+/* Visual states (intentionally distinct from each other so ambiguous
+ * "is that selected or just hovered?" reads can't happen):
+ *
+ *   :hover       — 5% currentColor overlay. Subtle, transient mouse cue.
+ *   [selected]   — elevated surface + accent left-edge stripe. The
+ *                  Firefox selectedTab; one row at a time.
+ *   [gjoa-cursor] — 1px outline (defined further down). The vim cursor;
+ *                  follows selection by default but can decouple via
+ *                  panel-mode j/k navigation that doesn't commit.
+ */
+.gjoa-tab-row:hover, .gjoa-group-row:hover {
+  background: color-mix(in srgb, currentColor 5%, transparent);
+}
+.gjoa-tab-row[selected] {
+  background: var(--gjoa-surface-1);
+}
+
+/* Favicon */
+.gjoa-tab-icon {
+  width: 16px; height: 16px;
+  margin-inline-end: 6px;
+  flex-shrink: 0;
+}
+.gjoa-tab-row[busy] .gjoa-tab-icon { opacity: 0.4; }
+
+/* Label */
+.gjoa-tab-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+/* Group rows */
+.gjoa-group-row {
+  font-weight: 600;
+  opacity: 0.85;
+}
+.gjoa-group-marker {
+  margin-inline-end: 6px;
+  font-size: 8px;
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+/* Collapse indicator — real XUL <image> child. Right-anchored via
+ * margin-inline-start: auto so it sits flush-right when visible.
+ * display:none by default; CSS reveals it for collapsed rows with
+ * children (see [gjoa-collapsed] rule lower down). */
+.gjoa-tab-chevron {
+  width: 12px; height: 12px;
+  margin-inline-start: auto;
+  margin-inline-end: 4px;
+  flex-shrink: 0;
+  display: none;
+  list-style-image: url("chrome://global/skin/icons/arrow-right.svg");
+  -moz-context-properties: fill;
+  fill: currentColor;
+  opacity: 0.5;
+}
+[gjoa-collapsed] .gjoa-tab-chevron {
+  display: inline-block;
+}
+
+/* Close affordance — a subtle, right-anchored × revealed on hover (any row)
+ * and on the active/selected row (the safe default, à la Firefox). Hidden
+ * otherwise so the strip stays calm. When a row also has a collapse chevron
+ * (a collapsed parent), the × takes the right-anchor and the chevron tucks in
+ * just after it: [favicon … label … × ▸]. */
+.gjoa-tab-close {
+  width: 14px; height: 14px;
+  margin-inline-start: auto;
+  margin-inline-end: 4px;
+  flex-shrink: 0;
+  display: none;
+  list-style-image: url("chrome://global/skin/icons/close.svg");
+  -moz-context-properties: fill;
+  fill: currentColor;
+  opacity: 0.5;
+  border-radius: 4px;
+}
+.gjoa-tab-close:hover {
+  opacity: 0.95;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+.gjoa-tab-row:hover .gjoa-tab-close,
+.gjoa-tab-row[selected] .gjoa-tab-close {
+  display: inline-block;
+}
+/* When the × is shown it owns the right-anchor; the chevron (if present) sits
+ * immediately after it rather than fighting for the auto-margin. */
+.gjoa-tab-row:hover .gjoa-tab-chevron,
+.gjoa-tab-row[selected] .gjoa-tab-chevron {
+  margin-inline-start: 4px;
+}
+/* Icons-only (narrow) mode: no room for a hover ×; keep the strip clean
+ * (middle-click / context-menu still close). */
+:is(#gjoa-tab-panel, #gjoa-pinned-container)[gjoa-icons-only] .gjoa-tab-close {
+  display: none !important;
+}
+
+/* #endregion rows */
+
+
+/* #region vim cursor */
+
+[gjoa-cursor] {
+  outline: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+  outline-offset: -1px;
+}
+:root[gjoa-mode="insert"] [gjoa-cursor] {
+  outline-color: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+/* #endregion vim cursor */
+
+
+/* #region modeline — absolute overlay at bottom, hidden by default */
+
+#appcontent {
+  position: relative;
+}
+#gjoa-modeline {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 22px;
+  padding: 0 10px;
+  font-family: monospace;
+  font-size: 11px;
+  line-height: 22px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #c0caf5;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  z-index: 100;
+  display: none;
+}
+#gjoa-modeline[gjoa-visible] {
+  display: flex;
+}
+#gjoa-modeline-mode {
+  font-weight: bold;
+  margin-inline-end: 12px;
+}
+#gjoa-modeline-chord {
+  opacity: 0.6;
+}
+#gjoa-modeline-msg {
+  opacity: 0.5;
+  margin-inline-start: 8px;
+}
+:root[gjoa-mode="normal"] #gjoa-modeline-mode { color: #7aa2f7; }
+:root[gjoa-mode="insert"] #gjoa-modeline-mode { color: #9ece6a; }
+
+/* Search input (in modeline) */
+.gjoa-search-prefix {
+  font-family: monospace;
+  font-size: 11px;
+  font-weight: bold;
+  opacity: 0.6;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+.gjoa-search-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none;
+  font-family: monospace;
+  font-size: 11px;
+  line-height: 20px;
+  background: transparent;
+  color: inherit;
+  outline: none;
+}
+
+/* #endregion modeline */
+
+
+/* #region rename input */
+
+/* Rename mode — vim.ts toggles `contenteditable` on the existing
+ * .gjoa-tab-label and adds .gjoa-renaming. No new element enters the DOM,
+ * so the row's box is unchanged: same font, same line-height, same flex
+ * slot. The teal focus ring lives on the row via :focus-within. */
+.gjoa-tab-label.gjoa-renaming {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+  outline: none;
+  cursor: text;
+  user-select: text;
+  -moz-user-select: text;
+}
+
+.gjoa-tab-row:focus-within,
+.gjoa-group-row:focus-within {
+  outline: 2px solid var(--gjoa-aurora);
+  outline-offset: -1px;
+  border-radius: 4px;
+}
+
+/* Horizontal mode: tab cells are fixed-width grid tracks (minmax(0,200px))
+ * that don't grow for the rename field. The vertical-mode default of
+ * overflow:visible spills the typed text past the narrow cell — clipped at
+ * the toolbar's right edge or painted over the adjacent tab, so you can't see
+ * what you type. Scroll the editable label horizontally instead: the box
+ * stays put inside its cell and Firefox keeps the caret in view, exactly like
+ * a normal narrow text input. */
+:is(#gjoa-tab-panel, #gjoa-pinned-container)[gjoa-horizontal] .gjoa-tab-label.gjoa-renaming {
+  overflow: hidden;
+}
+
+/* #endregion rename input */
+
+
+/* #region multi-select */
+
+[gjoa-multi] {
+  background: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+/* #endregion multi-select */
+
+
+/* #region drag and drop */
+
+/* No source-row indicator. Firefox's native drag preview already shows
+ * the dragged element's ghost while in flight. Painting our own outline
+ * adds nothing visually but introduces a stuck-attribute bug class
+ * whenever dragend fails to fire (source row destroyed mid-drop, etc.) —
+ * the row keeps the outline indefinitely and looks selected. By having
+ * no [gjoa-dragging] CSS, the attribute can stick harmlessly. */
+#gjoa-drop-indicator {
+  /* Hit-testable, the indicator IS the dead band: it sits under the pointer at
+   * exactly the drop line and refuses dragover, so the drop never fires. */
+  pointer-events: none;
+  height: 2px;
+  background: color-mix(in srgb, currentColor 50%, transparent);
+  margin: 0 var(--gjoa-sidebar-inset);
+  border-radius: 1px;
+}
+#gjoa-drop-indicator[gjoa-drop-child] {
+  height: 0;
+  border: 1px dashed color-mix(in srgb, currentColor 35%, transparent);
+  margin-top: -1px;
+  margin-bottom: -1px;
+}
+/* Horizontal-mode indicator is fixed-positioned by JS; ignore the in-flow
+ * margin/border-radius and just paint a solid bar. */
+#gjoa-drop-indicator[gjoa-fixed] {
+  margin: 0;
+  border: none;
+  z-index: 9999;
+}
+#gjoa-drop-indicator[gjoa-fixed][gjoa-drop-child] {
+  height: 2px;
+  border: none;
+}
+
+/* #endregion drag and drop */
+
+
+/* #region horizontal mode — replace native tab strip */
+
+:root[gjoa-horizontal-tabs] #tabbrowser-tabs {
+  display: none !important;
+}
+:root[gjoa-horizontal-tabs] #TabsToolbar {
+  position: relative !important;
+  z-index: 100 !important;
+  /* Popout cells extend below TabsToolbar's row 1 height. overflow:visible
+   * + isolation lets them escape and paint above nav-bar via z-index. */
+  overflow: visible !important;
+  isolation: isolate !important;
+  margin-top: 6px;
+}
+
+/* Opt-in: place the tab strip BELOW nav-bar in horizontal mode (default
+ * Firefox order has tabs on top). Set gjoa.toolbar.tabsBelowNavBar = true
+ * in about:config to flip. */
+@media -moz-pref("gjoa.toolbar.tabsBelowNavBar") {
+  :root[gjoa-horizontal-tabs] #navigator-toolbox {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  :root[gjoa-horizontal-tabs] #TabsToolbar { order: 1; }
+  :root[gjoa-horizontal-tabs] #PersonalToolbar { order: 2; }
+}
+/* Don't let navigator-toolbox clip TabsToolbar's popouts. */
+:root[gjoa-horizontal-tabs] #navigator-toolbox {
+  overflow: visible !important;
+}
+
+/* Horizontal-mode grid layout — both the panel and the pinned container
+ * render as grids of tab cells. Pinned sits before panel, separated by a
+ * vertical divider (border-right on the pinned container).
+ * `:not([hidden])` keeps an empty pinned container hidden (no rows = no
+ * grid to lay out). */
+:is(#gjoa-tab-panel, #gjoa-pinned-container)[gjoa-horizontal]:not([hidden]) {
+  display: grid !important;
+  /* No min — columns shrink infinitely small as more tabs arrive,
+   * rather than scrolling offscreen. */
+  grid-auto-columns: minmax(0, 200px);
+  grid-auto-rows: auto;
+  justify-content: start;
+  align-content: start;
+  min-width: 0 !important;
+  min-height: unset !important;
+  overflow: visible !important;
+  z-index: 2;
+}
+/* Panel fills the remaining toolbar width; pinned sizes to its contents. */
+#gjoa-tab-panel[gjoa-horizontal] {
+  flex: 1 1 0 !important;
+}
+#gjoa-pinned-container[gjoa-horizontal] {
+  flex: 0 0 auto !important;
+  padding: 0;
+  margin-right: 6px;
+  padding-right: 6px;
+  border-right: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+}
+/* Vertical divider replaces the horizontal one in horizontal mode. */
+#gjoa-pinned-container[gjoa-horizontal]::after {
+  display: none;
+}
+
+:is(#gjoa-tab-panel, #gjoa-pinned-container)[gjoa-horizontal] .gjoa-tab-row,
+:is(#gjoa-tab-panel, #gjoa-pinned-container)[gjoa-horizontal] .gjoa-group-row {
+  margin: 1px;
+  position: relative;
+}
+
+/* Popout children — solid background so they obscure whatever paints
+ * underneath. Applies to popouts in BOTH the panel and pinned containers.
+ * `var(--gjoa-surface-0)` defaults to an opaque literal so this can't bleed
+ * the toolbar / urlbar / page through (see gjoa.css palette region). */
+:is(#gjoa-tab-panel, #gjoa-pinned-container)[gjoa-horizontal] [gjoa-popout-child] {
+  background: var(--gjoa-surface-0) !important;
+  background-image: none !important;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+/* Shadow on the last child in each popout column */
+#gjoa-tab-panel[gjoa-horizontal] [gjoa-popout-child]:not(:has(+ [gjoa-popout-child])) {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+}
+
+#gjoa-tab-panel[gjoa-horizontal] #gjoa-tab-spacer {
+  display: none !important;
+}
+
+/* #endregion horizontal mode */
+
+
+/* #region picker — fzf-style overlay for :history / :sessions / :restore
+ *
+ * Built lazily by src/tabs/vim.ts:ensurePickerBuilt(). One picker
+ * element lives in the chrome doc; show/hide via .hidden. Position is
+ * fixed, anchored to bottom-center, fits in the viewport with sane
+ * max-height + scrollable list. */
+
+/* Anchored to TOP edge (bottom: auto) so the input row stays put and
+ * the result list resizes from the bottom as filtering narrows results.
+ * The top position equals (viewport-height − max-height − bottom-margin)
+ * so a full-height picker still has ~32px breathing room from the
+ * viewport bottom. Shorter result sets just leave whitespace below
+ * instead of yanking the input down. */
+#gjoa-picker {
+  position: fixed !important;
+  left: 50% !important;
+  top: calc(100vh - 60vh - 32px) !important;
+  bottom: auto !important;
+  transform: translateX(-50%) !important;
+  z-index: 9999 !important;
+  width: min(720px, 90vw) !important;
+  max-height: 60vh !important;
+  background: color-mix(in srgb, var(--gjoa-surface-1) 90%, transparent) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(1.3) !important;
+  backdrop-filter: blur(20px) saturate(1.3) !important;
+  color: var(--gjoa-text-normal) !important;
+  border: 1px solid color-mix(in srgb, var(--gjoa-line-subtle) 70%, transparent) !important;
+  border-radius: 16px !important;
+  box-shadow:
+    0 32px 80px -18px rgba(0, 0, 0, 0.62),
+    0 1px 0 0 rgba(255, 255, 255, 0.04) inset !important;
+  font-family: var(--gjoa-font, system-ui, sans-serif) !important;
+  font-size: 13px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  animation: gjoa-picker-in 0.16s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+}
+
+@keyframes gjoa-picker-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(-6px) scale(0.99); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #gjoa-picker { animation: none !important; }
+}
+
+#gjoa-picker[hidden] { display: none !important; }
+
+#gjoa-picker .gjoa-picker-input-box {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 13px 18px !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--gjoa-line-subtle) 60%, transparent) !important;
+}
+
+#gjoa-picker .gjoa-picker-prompt {
+  color: var(--gjoa-aurora) !important;
+  font-weight: 600 !important;
+}
+
+#gjoa-picker .gjoa-picker-input {
+  flex: 1 !important;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  color: var(--gjoa-text-normal) !important;
+  font: inherit !important;
+}
+
+#gjoa-picker .gjoa-picker-list {
+  flex: 1 !important;
+  overflow-y: auto !important;
+  padding: 4px 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+#gjoa-picker .gjoa-picker-row {
+  padding: 7px 12px !important;
+  margin: 0 7px !important;
+  border-radius: 10px !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 9px !important;
+}
+
+#gjoa-picker .gjoa-picker-row[gjoa-picker-selected="true"] {
+  background: color-mix(in srgb, var(--gjoa-aurora) 15%, transparent) !important;
+}
+
+#gjoa-picker .gjoa-picker-row:hover:not([gjoa-picker-selected="true"]) {
+  background: color-mix(in srgb, var(--gjoa-text-normal) 6%, transparent) !important;
+}
+
+/* Tree context rows — dim text so direct matches stand out. */
+#gjoa-picker .gjoa-picker-row[gjoa-picker-context="true"] .gjoa-picker-label,
+#gjoa-picker .gjoa-picker-row[gjoa-picker-context="true"] .gjoa-picker-secondary {
+  opacity: 0.5 !important;
+}
+
+#gjoa-picker .gjoa-picker-icon {
+  width: 16px !important;
+  height: 16px !important;
+  flex: none !important;
+  object-fit: contain !important;
+}
+
+#gjoa-picker .gjoa-picker-icon-text {
+  width: 16px !important;
+  text-align: center !important;
+  flex: none !important;
+}
+
+#gjoa-picker .gjoa-picker-text {
+  display: flex !important;
+  align-items: baseline !important;
+  gap: 12px !important;
+  min-width: 0 !important;
+  flex: 1 !important;
+}
+
+#gjoa-picker .gjoa-picker-secondary {
+  color: var(--gjoa-text-muted) !important;
+  font-size: 0.85em !important;
+  margin-inline-start: auto !important;
+}
+
+#gjoa-picker .gjoa-picker-empty {
+  padding: 16px 14px !important;
+  color: var(--gjoa-text-muted) !important;
+  font-style: italic !important;
+}
+
+/* #endregion picker */
+
+
+/* #region single-row horizontal
+ *
+ * Classic horizontal already flows the tab panel into the toolbar row. The
+ * single-row variant adds two things, gated on gjoa.layout.horizontalSingleRow:
+ *   1. The toolbar icons (back/fwd/reload/extensions/sidebar) collapse into one
+ *      "omni-icon" dropdown (#gjoa-omni-icon-button, built by drawer/omni-icon).
+ *   2. Tabs stay on ONE non-wrapping, horizontally-scrolling row.
+ * Net read: [omni][url][tab1 … tabN] on a single line. Toggle in about:gjoa. */
+
+/* The omni-icon is created always; hide it unless single-row is on. */
+#gjoa-omni-icon-button { display: none; }
+
+@media -moz-pref("gjoa.layout.horizontalSingleRow") {
+  /* Reveal the omni-icon; hide the buttons it now stands in for. */
+  #gjoa-omni-icon-button { display: -moz-box !important; }
+  :root[gjoa-horizontal-tabs] #nav-bar #back-button,
+  :root[gjoa-horizontal-tabs] #nav-bar #forward-button,
+  :root[gjoa-horizontal-tabs] #nav-bar #stop-reload-button,
+  :root[gjoa-horizontal-tabs] #nav-bar #unified-extensions-button,
+  :root[gjoa-horizontal-tabs] #gjoa-sidebar-button {
+    display: none !important;
+  }
+
+  /* Tabs on a single non-wrapping, horizontally-scrolling row. */
+  #gjoa-tab-panel[gjoa-horizontal] {
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scrollbar-width: thin;
+  }
+  #gjoa-tab-panel[gjoa-horizontal] .gjoa-tab-row {
+    flex: 0 0 auto !important;
+    max-width: 180px !important;
+  }
+}
+
+/* #endregion single-row horizontal */
+
+
+/* #region horizontal sidebar strip (gjoa.layout.horizontalSidebarStrip)
+ *
+ * In horizontal tab mode Firefox still renders its vertical sidebar launcher
+ * strip — #sidebar-container, the narrow left column of icons (AI/sparkle, sidebar,
+ * history, bookmarks, settings). The tabs already live in the toolbar row here,
+ * so that strip is redundant chrome stealing horizontal space. Default = hidden
+ * (pref OFF); flip gjoa.layout.horizontalSidebarStrip on (leader-b, the
+ * `:sidebar-strip` command, or about:gjoa) to bring it back.
+ *
+ * Pref-driven, no JS observer — Firefox re-evaluates -moz-pref() media queries
+ * live, so the toggle just flips the bool and the strip appears/disappears.
+ * Mirrors the gjoa.layout.horizontalSingleRow idiom directly above.
+ *
+ * `display: none` takes #sidebar-container fully out of the #browser flex row, so the
+ * content (#tabbrowser-tabbox) reclaims the column with no leftover gap. The
+ * adjacent #sidebar-launcher-splitter is hidden too, so no orphan divider. Only
+ * matches in horizontal mode (:root[gjoa-horizontal-tabs]); vertical/sidebar tab
+ * mode is untouched and always keeps the strip. */
+@media not -moz-pref("gjoa.layout.horizontalSidebarStrip") {
+  :root[gjoa-horizontal-tabs] #sidebar-container,
+  :root[gjoa-horizontal-tabs] #sidebar-container ~ #sidebar-launcher-splitter {
+    display: none !important;
+  }
+}
+
+/* order:-1 renders it first in #sidebar-container's flex column (gjoa.uc.css). */
+#gjoa-strip-hide-button {
+  display: none;
+}
+
+:root[gjoa-horizontal-tabs] #gjoa-strip-hide-button {
+  display: flex;
+  order: -1;
+}
+
+/* #endregion horizontal sidebar strip */

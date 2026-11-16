@@ -446,10 +446,10 @@ index 16d494c85aed25aa10c13a5584797af98e3dd52d..36c1c4178dd98e1699dee6007df05d73
      pub(crate) fn system_nscolor(
          &self,
 diff --git a/servo/components/style/values/specified/color.rs b/servo/components/style/values/specified/color.rs
-index 7c9ccc098b77a65d52008f1762f874207b79a039..3f51389987967f3d8cfe0c9501442ddb705821fd 100644
+index 7c9ccc098b77a65d52008f1762f874207b79a039..f5b64cb04e9833e93b80b7ba0513d5b62fc759e7 100644
 --- a/servo/components/style/values/specified/color.rs
 +++ b/servo/components/style/values/specified/color.rs
-@@ -826,6 +826,58 @@ impl Color {
+@@ -826,6 +826,59 @@ impl Color {
      }
  }
  
@@ -490,10 +490,11 @@ index 7c9ccc098b77a65d52008f1762f874207b79a039..3f51389987967f3d8cfe0c9501442ddb
 +/// whether inherited text under an image-backdrop hero is already light (preserve
 +/// it) or dark (let it invert to light) — so hero text always reads on the scrim.
 +fn color_relative_luminance(color: &AbsoluteColor) -> f32 {
-+    let c = color.to_nscolor();
-+    let r = (c & 0xff) as u8;
-+    let g = ((c >> 8) & 0xff) as u8;
-+    let b = ((c >> 16) & 0xff) as u8;
++    // (AbsoluteColor::to_nscolor was removed in Firefox 160; same 8-bit sRGB rounding.)
++    let srgb = color.to_color_space(ColorSpace::Srgb);
++    let r = (srgb.components.0 * 255.0).round() as u8;
++    let g = (srgb.components.1 * 255.0).round() as u8;
++    let b = (srgb.components.2 * 255.0).round() as u8;
 +    let compute = |u: u8| -> f32 {
 +        let f = u as f32 / 255.0;
 +        if f <= 0.03928 {
@@ -508,7 +509,7 @@ index 7c9ccc098b77a65d52008f1762f874207b79a039..3f51389987967f3d8cfe0c9501442ddb
  impl Color {
      /// Converts this Color into a ComputedColor.
      ///
-@@ -851,7 +903,7 @@ impl Color {
+@@ -851,7 +904,7 @@ impl Color {
              }};
          }
  
@@ -517,7 +518,7 @@ index 7c9ccc098b77a65d52008f1762f874207b79a039..3f51389987967f3d8cfe0c9501442ddb
              Color::CurrentColor => ComputedColor::CurrentColor,
              Color::Absolute(ref absolute) => {
                  let mut color = absolute.color;
-@@ -895,7 +947,46 @@ impl Color {
+@@ -895,7 +948,46 @@ impl Color {
              Color::InheritFromBodyQuirk => {
                  ComputedColor::Absolute(context.ok_or(())?.device().body_text_color())
              },

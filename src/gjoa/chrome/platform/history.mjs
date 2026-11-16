@@ -1,9 +1,29 @@
+// Gjoa.history / .sessions / .checkpoints: views over the append-only tab
+// history store (tabs/history.mjs). Sessions and checkpoints are tagged
+// history events whose tag starts with "session:" / "checkpoint:".
 
-function is_of_kind(kind) {
-  const prefix = ("".concat(kind, ":"));
-  return (_pct1) => ((_logical) => (_logical !== false && _logical != null ? _pct1.tag.startsWith(prefix) : _logical))(_pct1.tag);
+const isOfKind = (kind) => (ev) => !!ev.tag?.startsWith(`${kind}:`);
+
+function taggedView(history, kind) {
+  return {
+    list: (opts) => history.getTagged(opts?.limit ?? 100).then((evs) => evs.filter(isOfKind(kind))),
+    search: (query, opts) =>
+      history.search(query, { taggedOnly: true, limit: opts?.limit ?? 50 })
+        .then((evs) => evs.filter(isOfKind(kind))),
+    tag: (label) => history.tagLatest(kind, label),
+  };
 }
 
 export function make_persisted(history) {
-  return {history: {recent: (_pct1) => history.getRecent(((_logical) => (_logical !== false && _logical != null ? _logical : 50))(((_logical) => (_logical !== false && _logical != null ? _pct1.limit : _logical))(_pct1))), search: (query, opts) => history.search(query, {taggedOnly: ((_logical) => (_logical !== false && _logical != null ? _logical : false))(((_logical) => (_logical !== false && _logical != null ? opts.taggedOnly : _logical))(opts)), limit: ((_logical) => (_logical !== false && _logical != null ? _logical : 50))(((_logical) => (_logical !== false && _logical != null ? opts.limit : _logical))(opts))}), byId: (_pct1) => history.getById(_pct1), instanceId: () => history.instanceId()}, checkpoints: {list: (opts) => history.getTagged(((_logical) => (_logical !== false && _logical != null ? _logical : 100))(((_logical) => (_logical !== false && _logical != null ? opts.limit : _logical))(opts))).then((_pct1) => _pct1.filter(is_of_kind("checkpoint"))), search: (query, opts) => history.search(query, {taggedOnly: true, limit: ((_logical) => (_logical !== false && _logical != null ? _logical : 50))(((_logical) => (_logical !== false && _logical != null ? opts.limit : _logical))(opts))}).then((_pct1) => _pct1.filter(is_of_kind("checkpoint"))), tag: (_pct1) => history.tagLatest("checkpoint", _pct1)}, sessions: {list: (opts) => history.getTagged(((_logical) => (_logical !== false && _logical != null ? _logical : 100))(((_logical) => (_logical !== false && _logical != null ? opts.limit : _logical))(opts))).then((_pct1) => _pct1.filter(is_of_kind("session"))), search: (query, opts) => history.search(query, {taggedOnly: true, limit: ((_logical) => (_logical !== false && _logical != null ? _logical : 50))(((_logical) => (_logical !== false && _logical != null ? opts.limit : _logical))(opts))}).then((_pct1) => _pct1.filter(is_of_kind("session"))), tag: (_pct1) => history.tagLatest("session", _pct1)}};
+  return {
+    history: {
+      recent: (opts) => history.getRecent(opts?.limit ?? 50),
+      search: (query, opts) =>
+        history.search(query, { taggedOnly: opts?.taggedOnly ?? false, limit: opts?.limit ?? 50 }),
+      byId: (id) => history.getById(id),
+      instanceId: () => history.instanceId(),
+    },
+    checkpoints: taggedView(history, "checkpoint"),
+    sessions: taggedView(history, "session"),
+  };
 }

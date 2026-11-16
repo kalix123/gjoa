@@ -1,7 +1,7 @@
-
-import { equiv } from "../lib/value.mjs";
-export function is_in_active_space(tab, tab_space, spaces, default_id, active_id) {
-  const id = tab_space.get(tab);
-  const effective = (((!(equiv(id, undefined))) && spaces.has(id)) ? id : default_id);
-  return (effective === active_id);
+// A tab belongs to its assigned space if that space still exists, otherwise
+// to the default space.
+export function is_in_active_space(tab, tabSpace, spaces, defaultId, activeId) {
+  const id = tabSpace.get(tab);
+  const effective = id !== undefined && spaces.has(id) ? id : defaultId;
+  return effective === activeId;
 }

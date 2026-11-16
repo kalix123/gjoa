@@ -1,28 +1,45 @@
+// Gjoa.tabs: list and activate tabs across every browser window, through each
+// window's own Gjoa API.
 
-import { equiv, truthy } from "../lib/value.mjs";
+function* gjoaWindows() {
+  const e = Services.wm.getEnumerator("navigator:browser");
+  while (e.hasMoreElements()) {
+    const api = e.getNext().Gjoa;
+    if (api) yield api.windows.current();
+  }
+}
+
 export function make_cross_window_tabs() {
-  return {all: () => { const out = [];
-(() => { try {
-    return (() => { let e = Services.wm.getEnumerator("navigator:browser"); while (true) {
-    if (truthy(e.hasMoreElements())) { (() => { const w = e.getNext(); const p = w.Gjoa; if (truthy(p)) {
-  return (() => { try {
-    const win = p.windows.current();
-  const tabs = win.tabs.list();
-  return tabs.forEach((t) => out.push({id: t.id, url: t.url, label: t.label, customName: t.customName, pinned: t.pinned, selected: t.selected, hidden: t.hidden, parentId: t.parentId, depth: t.depth, windowId: win.windowId}));
-  } catch (__e) {
-    return null;
-  } })();
-} })(); const _recur_0 = e; e = _recur_0; continue; } else { return out; }
-  } })();
-  } catch (err) {
-    return console.error("[Gjoa.tabs.all] enumerate failed", err);
-  } })();
-return out; }, activate: (gjoa_id, window_id) => (() => { try {
-    return (() => { let e = Services.wm.getEnumerator("navigator:browser"); while (true) {
-    if (truthy(e.hasMoreElements())) { const w = e.getNext(); const p = w.Gjoa; if (truthy(p)) { const win = p.windows.current(); if ((equiv(win.windowId, window_id))) { return win.tabs.activate(gjoa_id); } else { const _recur_0 = e; e = _recur_0; continue; } } else { const _recur_0 = e; e = _recur_0; continue; } } else { return false; }
-  } })();
-  } catch (err) {
-    console.error("[Gjoa.tabs.activate] failed", err);
-    return false;
-  } })()};
+  return {
+    all() {
+      const out = [];
+      try {
+        for (const win of gjoaWindows()) {
+          try {
+            for (const t of win.tabs.list()) {
+              out.push({
+                id: t.id, url: t.url, label: t.label, customName: t.customName,
+                pinned: t.pinned, selected: t.selected, hidden: t.hidden,
+                parentId: t.parentId, depth: t.depth, windowId: win.windowId,
+              });
+            }
+          } catch {}
+        }
+      } catch (err) {
+        console.error("[Gjoa.tabs.all] enumerate failed", err);
+      }
+      return out;
+    },
+    activate(gjoaId, windowId) {
+      try {
+        for (const win of gjoaWindows()) {
+          if (win.windowId === windowId) return win.tabs.activate(gjoaId);
+        }
+        return false;
+      } catch (err) {
+        console.error("[Gjoa.tabs.activate] failed", err);
+        return false;
+      }
+    },
+  };
 }

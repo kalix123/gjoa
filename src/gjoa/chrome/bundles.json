@@ -48,7 +48,6 @@
       ],
       "files": [
         "tabs/log.mjs",
-        "tabs/types.mjs",
         "tabs/constants.mjs",
         "tabs/state.mjs",
         "firefox/dom.mjs",
@@ -60,7 +59,6 @@
         "tabs/helpers.mjs",
         "tabs/snapshot.mjs",
         "tabs/history.mjs",
-        "spaces/types.mjs",
         "spaces/visibility.mjs",
         "spaces/manager.mjs",
         "spaces/niri.mjs",

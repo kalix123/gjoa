@@ -1,66 +1,90 @@
-import { create_logger_bang } from '../tabs/log.mjs';
+// Microtask-batched reconcile scheduler. Callers mark a domain dirty with a
+// reason; once per microtask every dirty domain's reconcilers run, in
+// DOMAIN_ORDER, with the reasons collected since the last run. Marks made
+// during a run schedule another run. flush() resolves once nothing is pending.
 
-import { truthy } from "../lib/value.mjs";
+import { create_logger_bang } from "../tabs/log.mjs";
+
 export const DOMAIN_ORDER = ["prefs", "windows", "tabs", "snapshots", "sidebar", "command"];
 
 export function make_scheduler_bang() {
   const log = create_logger_bang("scheduler");
-  const reconcilers = new Map();
-  const pending = new Map();
-  const state = {pendingFlush: null, pendingResolve: null, lastReconcileMs: null, destroyed: false};
-  return (() => { function get_dirty(domain) { return ((_logical) => (_logical !== false && _logical != null ? _logical : (() => { const fresh = []; pending.set(domain, fresh);
-return fresh; })()))(pending.get(domain)); } function run_once() { if ((!truthy(state.destroyed))) {
-  const started_at = performance.now();
-  const snapshot = (() => { const snap = new Map(); pending.forEach((reasons, domain) => snap.set(domain, reasons));
-return snap; })();
-  pending.clear();
-  DOMAIN_ORDER.forEach((domain) => { const reasons = snapshot.get(domain);
-if (truthy(((_logical) => (_logical !== false && _logical != null ? (!((reasons.length === 0))) : _logical))(reasons))) {
-  const handlers = ((_logical) => (_logical !== false && _logical != null ? _logical : []))(reconcilers.get(domain));
-  return handlers.forEach((_pct1) => (() => { try {
-    return _pct1.run(reasons);
-  } catch (e) {
-    return log("reconciler:error", {domain: domain, reasons: reasons, msg: String(e)});
-  } })());
-} });
-  (state.lastReconcileMs = (performance.now() - started_at));
-  return log("reconcile:done", {ms: state.lastReconcileMs});
-} } function schedule() { if ((!truthy(((_logical) => (_logical !== false && _logical != null ? _logical : state.destroyed))(state.pendingFlush)))) {
-  return (state.pendingFlush = new Promise((resolve) => { (state.pendingResolve = resolve);
-return queueMicrotask(() => (() => { try {
-    return run_once();
-  }  finally {
-    const co = {v: false};
-    pending.forEach((_pct1) => { if ((_pct1.length > 0)) {
-  return (co.v = true);
-} });
-    (state.pendingFlush = null);
-    const local_resolve = state.pendingResolve;
-    (state.pendingResolve = null);
-    if (truthy(co.v)) {
-      schedule();
+  const reconcilers = new Map(); // domain -> [{domain, run(reasons)}]
+  const pending = new Map(); // domain -> [reason]
+  let pendingFlush = null;
+  let lastReconcileMs = null;
+  let destroyed = false;
+
+  function runOnce() {
+    if (destroyed) return;
+    const startedAt = performance.now();
+    const snapshot = new Map(pending);
+    pending.clear();
+    for (const domain of DOMAIN_ORDER) {
+      const reasons = snapshot.get(domain);
+      if (!reasons || reasons.length === 0) continue;
+      for (const r of reconcilers.get(domain) ?? []) {
+        try {
+          r.run(reasons);
+        } catch (e) {
+          log("reconciler:error", { domain, reasons, msg: String(e) });
+        }
+      }
     }
-    if (truthy(local_resolve)) {
-      local_resolve();
-    }
-  } })()); }));
-} } function register(reconciler) { const list = ((_logical) => (_logical !== false && _logical != null ? _logical : (() => { const fresh = []; reconcilers.set(reconciler.domain, fresh);
-return fresh; })()))(reconcilers.get(reconciler.domain));
-list.push(reconciler);
-log("register", {domain: reconciler.domain});
-return () => { const arr = reconcilers.get(reconciler.domain);
-if (truthy(arr)) {
-  const i = arr.indexOf(reconciler);
-  if ((i >= 0)) {
-    return arr.splice(i, 1);
+    lastReconcileMs = performance.now() - startedAt;
+    log("reconcile:done", { ms: lastReconcileMs });
   }
-} }; } function mark_dirty(domain, reason) { if ((!truthy(state.destroyed))) {
-  get_dirty(domain).push(reason);
-  return schedule();
-} } function flush_bang() { return ((!truthy(state.pendingFlush)) ? Promise.resolve(undefined) : state.pendingFlush.then(() => { if (truthy(state.pendingFlush)) {
-  return flush_bang();
-} })); } function diag() { const out = DOMAIN_ORDER.reduce((acc, domain) => ({...acc, [domain]: ((_logical) => (_logical !== false && _logical != null ? _logical : []))(pending.get(domain))}), {});
-return {pending: out, nextFlushPending: (!((state.pendingFlush == null))), lastReconcileMs: state.lastReconcileMs}; } function destroy() { (state.destroyed = true);
-pending.clear();
-return reconcilers.clear(); } return {register: register, markDirty: mark_dirty, flush: flush_bang, diag: diag, destroy: destroy}; })();
+
+  function schedule() {
+    if (pendingFlush || destroyed) return;
+    pendingFlush = new Promise((resolve) => {
+      queueMicrotask(() => {
+        try {
+          runOnce();
+        } finally {
+          const moreWork = [...pending.values()].some((reasons) => reasons.length > 0);
+          pendingFlush = null;
+          if (moreWork) schedule();
+          resolve();
+        }
+      });
+    });
+  }
+
+  function register(reconciler) {
+    if (!reconcilers.has(reconciler.domain)) reconcilers.set(reconciler.domain, []);
+    reconcilers.get(reconciler.domain).push(reconciler);
+    log("register", { domain: reconciler.domain });
+    return () => {
+      const arr = reconcilers.get(reconciler.domain);
+      const i = arr ? arr.indexOf(reconciler) : -1;
+      if (i >= 0) arr.splice(i, 1);
+    };
+  }
+
+  function markDirty(domain, reason) {
+    if (destroyed) return;
+    if (!pending.has(domain)) pending.set(domain, []);
+    pending.get(domain).push(reason);
+    schedule();
+  }
+
+  function flush() {
+    if (!pendingFlush) return Promise.resolve();
+    return pendingFlush.then(() => (pendingFlush ? flush() : undefined));
+  }
+
+  function diag() {
+    const out = {};
+    for (const domain of DOMAIN_ORDER) out[domain] = pending.get(domain) ?? [];
+    return { pending: out, nextFlushPending: pendingFlush != null, lastReconcileMs };
+  }
+
+  function destroy() {
+    destroyed = true;
+    pending.clear();
+    reconcilers.clear();
+  }
+
+  return { register, markDirty, flush, diag, destroy };
 }

@@ -7,8 +7,8 @@
     "0003-newtab-redirector-gjoa.patch": "94ad4e34040fbba8043804542997480f8ca28a597a57c0b1094dd6434cfc449d",
     "0007-enable-sqlite-fts5.patch": "8e9e82b9b58ce40ef5de134bde89ae94ceb0f5cefc96ec73aea062dd1665aa4b",
     "0008-content-classifier-cosmetic-filtering.patch": "17816a670f6e7cd12ef363e0845685e9e4c61c319e5edd713cc47a4e00467199",
-    "0009-dark-mode-engine-color-inversion.patch": "a492cbab57f2f9e2dd86f02157bbe7f997ee852750b76dd6994e06009c1eb075",
-    "0010-dark-mode-island-scrim.patch": "afeb829dbf2a4508b395b62a3cd17f28a1d5a85d9ad6c4560e7d112f1bcb2309",
+    "0009-dark-mode-engine-color-inversion.patch": "8424a6eb5982b652333f1087351404670b4d4c9910235a023c23ac94d01f0813",
+    "0010-dark-mode-island-scrim.patch": "46f3b024e12f70169485f2951bf879dcf8aa9baee143fee66aadfa544eedf3eb",
     "0012-dark-mode-role-resolver.patch": "daa3723a1355750f27088ee93a85225b528a9649758ebd2144202a536175c293",
     "0013-dark-mode-text-solve.patch": "a35fad384fedbd7d911f81d443ca18e0f912bf9073140b089e6c0dc3df82811d",
     "0014-dark-mode-tier0.patch": "d5c190125d07a52851d919a0a7f3a6f840db143e5f5f8482a2ae2182d8f6aedb"

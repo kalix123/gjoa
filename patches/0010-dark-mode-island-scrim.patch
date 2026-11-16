@@ -5,7 +5,7 @@
 #     - servo/components/style/style_adjuster.rs
 #     - layout/painting/nsDisplayList.cpp
 #   depends-on:
-#     - rust-field GeckoBackground.background_image | accessor=clone_background_image
+#     - rust-field GeckoBackground.background_image | accessor=slow_clone_background_image
 #
 gjoa dark mode — image-backed "island" detection + dark scrim (sibling to 0009).
 
@@ -149,7 +149,7 @@ index 2dcded88754efe84c9c26d1c98708a55b6be1474..b1530723d7ee7e6194a935e3c9d1d6ed
  
      /// Flags that may be propagated to descendants.
 diff --git a/servo/components/style/style_adjuster.rs b/servo/components/style/style_adjuster.rs
-index 27fdf42ee1f0852c21dff4474d51cd1018738d35..f3b636dee28f2d04f435fb6e54c727e468963c5e 100644
+index 27fdf42ee1f0852c21dff4474d51cd1018738d35..fc54ccb970462fc1ea0fa30bda1caa7f9b5e9533 100644
 --- a/servo/components/style/style_adjuster.rs
 +++ b/servo/components/style/style_adjuster.rs
 @@ -307,6 +307,177 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
@@ -175,9 +175,9 @@ index 27fdf42ee1f0852c21dff4474d51cd1018738d35..f3b636dee28f2d04f435fb6e54c727e4
 +            // Gecko's Background exposes layers via clone_* accessors, not direct
 +            // fields (that's the servo-only path). The clones are cheap here — most
 +            // elements have a single `none` image layer.
-+            let image_list = bg.clone_background_image();
-+            let size_list = bg.clone_background_size();
-+            let repeat_list = bg.clone_background_repeat();
++            let image_list = bg.slow_clone_background_image();
++            let size_list = bg.slow_clone_background_size();
++            let repeat_list = bg.slow_clone_background_repeat();
 +            let images = &image_list.0;
 +            let sizes = &size_list.0;
 +            let repeats = &repeat_list.0;
@@ -229,7 +229,7 @@ index 27fdf42ee1f0852c21dff4474d51cd1018738d35..f3b636dee28f2d04f435fb6e54c727e4
 +            let ceiling = self.style.device.color_inversion_ceiling();
 +            let floor = self.style.device.color_inversion_floor();
 +            let band = (ceiling - floor).max(0.01);
-+            let bg = self.style.get_background().clone_background_color();
++            let bg = self.style.get_background().slow_clone_background_color();
 +            let mut preserved_dark = false;
 +            if let Some(abs) = bg.as_absolute() {
 +                // Translucent-but-visible dark layers (scrims) count as regions;
@@ -305,7 +305,7 @@ index 27fdf42ee1f0852c21dff4474d51cd1018738d35..f3b636dee28f2d04f435fb6e54c727e4
 +                // already-flagged ancestor this element's colors were resolved
 +                // with the preserve rule and must not be "recovered" again.
 +                if !inherited_already {
-+                    let text = self.style.get_inherited_text().clone_color();
++                    let text = self.style.get_inherited_text().slow_clone_color();
 +                    let oklch = text.to_color_space(ColorSpace::Oklch);
 +                    let l = oklch.c0().unwrap_or(0.0);
 +                    let c = oklch.c1().unwrap_or(0.0);

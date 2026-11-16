@@ -21,6 +21,14 @@ on:
       fast:
         type: boolean
         default: false
+  # Windows is the priority platform while the no-Beagle port lands: build it
+  # on every push to the port branch (a newer push cancels the older run).
+  push:
+    branches: [noBeagle]
+
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:

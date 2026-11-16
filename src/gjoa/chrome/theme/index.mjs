@@ -1,91 +1,47 @@
+// Chrome theme variant: stamps :root[gjoa-theme] from gjoa.theme.variant
+// (a base16 token-set swap in gjoa.uc.css). "polar-night" is the built-in
+// default and "system" follows the OS; both use the unattributed tokens.
 
-import { truthy } from "../lib/value.mjs";
+import { observePref, onWindowUnload, prefStr, setPrefBool, setPrefStr } from "../lib/chrome.mjs";
+
 const PREF_VARIANT = "gjoa.theme.variant";
-
 const PREF_USE_SYSTEM = "gjoa.theme.useSystem";
-
 const DEFAULT_VARIANT = "polar-night";
 
-const state = {unsub: null};
+let unsubscribe = null;
 
-function variant_() {
-  return (() => { try {
-    return Services.prefs.getStringPref(PREF_VARIANT, DEFAULT_VARIANT);
-  } catch (__e____scope__7__4__2__1__0) {
-    return (() => { try {
-    return Services.prefs.getCharPref(PREF_VARIANT, DEFAULT_VARIANT);
-  } catch (__e2____scope__7__4__2__2__2__1__0) {
-    return DEFAULT_VARIANT;
-  } })();
-  } })();
-}
+const getVariant = () => prefStr(PREF_VARIANT, DEFAULT_VARIANT);
 
-function set_theme_attr_bang(variant) {
+function apply() {
+  const variant = getVariant();
   const root = document.documentElement;
-  return ((((variant === "polar-night")) || ((variant === "system"))) ? root.removeAttribute("gjoa-theme") : root.setAttribute("gjoa-theme", variant));
+  if (variant === "polar-night" || variant === "system") root.removeAttribute("gjoa-theme");
+  else root.setAttribute("gjoa-theme", variant);
+  setPrefBool(PREF_USE_SYSTEM, variant === "system");
 }
 
-function set_use_system_bang(variant) {
-  return (() => { try {
-    return Services.prefs.setBoolPref(PREF_USE_SYSTEM, ((variant === "system")));
-  } catch (__e____scope__9__4__2__1__0) {
-    return null;
-  } })();
-}
-
-function apply_bang() {
-  const v = variant_();
-  set_theme_attr_bang(v);
-  return set_use_system_bang(v);
-}
-
-function set_variant(v) {
-  (() => { try {
-    return Services.prefs.setStringPref(PREF_VARIANT, v);
-  } catch (__e____scope__11__4__2__1__0) {
-    return null;
-  } })();
+function setVariant(v) {
+  setPrefStr(PREF_VARIANT, v);
   return v;
 }
 
-function get_variant() {
-  return variant_();
+function destroy() {
+  unsubscribe?.();
+  unsubscribe = null;
+  document.documentElement.removeAttribute("gjoa-theme");
 }
 
-function set_theme_defaults_bang() {
-  return (() => { try {
-    const d = Services.prefs.getDefaultBranch("");
-  return d.setCharPref(PREF_VARIANT, DEFAULT_VARIANT);
+function init() {
+  try {
+    Services.prefs.getDefaultBranch("").setCharPref(PREF_VARIANT, DEFAULT_VARIANT);
   } catch (e) {
-    return console.error("gjoa-theme: set-theme-defaults! failed", e);
-  } })();
-}
-
-function destroy_bang() {
-  const u = state.unsub;
-  if (truthy(u)) {
-    u();
+    console.error("gjoa-theme: setting the default variant failed", e);
   }
-  (state.unsub = null);
-  return document.documentElement.removeAttribute("gjoa-theme");
+  apply();
+  unsubscribe = observePref(PREF_VARIANT, apply);
+  window.gjoaTheme = { setVariant, getVariant };
+  onWindowUnload(destroy);
+  console.log(`gjoa-theme: initialized (variant=${getVariant()})`);
 }
 
-function init__bang() {
-  set_theme_defaults_bang();
-  apply_bang();
-  const observer = {observe: (__s, __t, __d) => apply_bang()};
-  Services.prefs.addObserver(PREF_VARIANT, observer);
-  (state.unsub = () => Services.prefs.removeObserver(PREF_VARIANT, observer));
-  (window.gjoaTheme = {setVariant: set_variant, getVariant: get_variant});
-  const __el____scope__15__8__1__0 = window;
-  const __ev____scope__15__8__1__3 = "unload";
-  const __h____scope__15__8__1__6 = destroy_bang;
-  __el____scope__15__8__1__0.addEventListener(__ev____scope__15__8__1__3, __h____scope__15__8__1__6, {once: true});
-  if (truthy(((__ev____scope__15__8__1__3 === "unload")) && ((_logical) => (_logical !== false && _logical != null ? __el____scope__15__8__1__0.__gjoaHR.teardowns : _logical))(__el____scope__15__8__1__0.__gjoaHR))) {
-    __el____scope__15__8__1__0.__gjoaHR.teardowns.push(__h____scope__15__8__1__6);
-  }
-  __h____scope__15__8__1__6;
-  return console.log(("".concat("gjoa-theme: initialized (variant=", variant_(), ")")));
-}
-
-init__bang();
+init();

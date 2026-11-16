@@ -1,210 +1,121 @@
+// Chrome-level dark mode controller. Translates gjoa.darkmode.{enabled,mode}
+// into the engine and Firefox prefs that implement it (see docs/dark-mode.md):
+//
+//   chrome    — dark window chrome (color-scheme on :root)
+//   override  — layout.css.prefers-color-scheme.content-override
+//               (0 = dark, 1 = light, 2 = follow the browser theme)
+//   invert    — engine inversion of every page (patch 0009)
+//   hybrid    — pre-paint inversion of only light/themeless pages
+//   rfpExempt — keep prefers-color-scheme working under resistFingerprinting
+//
+// Exposed as window.gjoaDarkMode.
 
-import { equiv, truthy } from "../lib/value.mjs";
+import { onWindowUnload, prefBool, prefStr, setPrefBool, setPrefInt, setPrefStr } from "../lib/chrome.mjs";
+
 const PREF_ENABLED = "gjoa.darkmode.enabled";
-
 const PREF_MODE = "gjoa.darkmode.mode";
-
 const PREF_CONTENT_OVERRIDE = "layout.css.prefers-color-scheme.content-override";
-
 const PREF_INVERT = "gjoa.darkmode.invert.enabled";
-
-const PREF_FORCE_NATIVE = "gjoa.darkmode.user.force-native";
-
-const PREF_FORCE_INVERT = "gjoa.darkmode.user.force-invert";
-
-const PREF_SITE_OFF = "gjoa.darkmode.user.off";
-
 const PREF_DEFAULT_INVERT = "gjoa.darkmode.hybrid.default-invert";
-
 const PREF_NORMALIZE = "gjoa.darkmode.normalize.enabled";
-
 const PREF_RFP_OVERRIDES = "privacy.resistFingerprinting.overrides";
-
 const RFP_COLORSCHEME_EXEMPT = "+AllTargets,-CSSPrefersColorScheme";
 
-const state = {unsub: null};
+const OFF = { chrome: false, override: 2, invert: false, hybrid: false, rfpExempt: false };
+const LIGHT = { chrome: false, override: 1, invert: false, hybrid: false, rfpExempt: false };
+const DARK = { chrome: true, override: 0, invert: false, hybrid: true, rfpExempt: true };
+const UNIFORM = { chrome: true, override: 1, invert: true, hybrid: false, rfpExempt: false };
 
-function set_content_override_bang(v) {
-  return (() => { try {
-    return Services.prefs.setIntPref(PREF_CONTENT_OVERRIDE, v);
-  } catch (__e____scope__15__4__2__1__0) {
-    return null;
-  } })();
-}
+let unsubscribe = null;
 
-function set_invert_bang(on) {
-  return (() => { try {
-    return Services.prefs.setBoolPref(PREF_INVERT, on);
-  } catch (__e____scope__16__4__2__1__0) {
-    return null;
-  } })();
-}
+const isEnabled = () => prefBool(PREF_ENABLED, true);
+const getMode = () => prefStr(PREF_MODE, "dark");
+const systemIsDark = () => window.matchMedia("(prefers-color-scheme: dark)").matches;
 
-function set_default_invert_bang(on) {
-  return (() => { try {
-    return Services.prefs.setBoolPref(PREF_DEFAULT_INVERT, on);
-  } catch (__e____scope__17__4__2__1__0) {
-    return null;
-  } })();
-}
-
-function set_rfp_colorscheme_exempt_bang(on) {
-  const cur = (() => { try {
-    return Services.prefs.getStringPref(PREF_RFP_OVERRIDES, "");
-  } catch (__e____scope__18__4__1__2__2__1__0) {
-    return (() => { try {
-    return Services.prefs.getCharPref(PREF_RFP_OVERRIDES, "");
-  } catch (__e2____scope__18__4__1__2__2__2__2__1__0) {
-    return "";
-  } })();
-  } })();
-  if (on) {
-    if (truthy(((cur === "")) || (equiv(cur, RFP_COLORSCHEME_EXEMPT)))) {
-      return (() => { try {
-    return Services.prefs.setStringPref(PREF_RFP_OVERRIDES, RFP_COLORSCHEME_EXEMPT);
-  } catch (__e____scope__18__4__2__2__2__2__1__0) {
-    return null;
-  } })();
-    }
-  } else {
-    if ((equiv(cur, RFP_COLORSCHEME_EXEMPT))) {
-      return (() => { try {
-    return Services.prefs.setStringPref(PREF_RFP_OVERRIDES, "");
-  } catch (__e____scope__18__4__2__3__2__2__1__0) {
-    return null;
-  } })();
-    }
+function settingsFor(enabled, mode) {
+  if (!enabled || mode === "off") return OFF;
+  switch (mode) {
+    case "system": return systemIsDark() ? DARK : LIGHT;
+    case "uniform": return UNIFORM;
+    case "light": return LIGHT;
+    default: return DARK; // "dark" and anything unrecognised
   }
 }
 
-function set_chrome_scheme_bang(dark) {
+// Only touch the RFP overrides pref when it is empty or holds our own value,
+// so a user's custom overrides are never clobbered.
+function setRfpColorSchemeExempt(on) {
+  const cur = prefStr(PREF_RFP_OVERRIDES, "");
+  if (on && (cur === "" || cur === RFP_COLORSCHEME_EXEMPT)) setPrefStr(PREF_RFP_OVERRIDES, RFP_COLORSCHEME_EXEMPT);
+  else if (!on && cur === RFP_COLORSCHEME_EXEMPT) setPrefStr(PREF_RFP_OVERRIDES, "");
+}
+
+function setChromeScheme(dark) {
   const root = document.documentElement;
   if (dark) {
-    (root.style.colorScheme = "dark");
-    return root.setAttribute("gjoa-darkmode", "true");
+    root.style.colorScheme = "dark";
+    root.setAttribute("gjoa-darkmode", "true");
   } else {
     root.style.removeProperty("color-scheme");
-    return root.removeAttribute("gjoa-darkmode");
+    root.removeAttribute("gjoa-darkmode");
   }
 }
 
-function enabled_p() {
-  return (() => { try {
-    return Services.prefs.getBoolPref(PREF_ENABLED, true);
-  } catch (__e____scope__20__4__2__1__0) {
-    return true;
-  } })();
-}
-
-function mode_() {
-  return (() => { try {
-    return Services.prefs.getStringPref(PREF_MODE, "dark");
-  } catch (__e____scope__21__4__2__1__0) {
-    return (() => { try {
-    return Services.prefs.getCharPref(PREF_MODE, "dark");
-  } catch (__e2____scope__21__4__2__2__2__1__0) {
-    return "dark";
-  } })();
-  } })();
-}
-
-function system_dark_p() {
-  return window.matchMedia("(prefers-color-scheme: dark)").matches;
-}
-
-function apply_bang() {
-  const en = enabled_p();
-  const m = mode_();
-  return ((((!en) || ((m === "off")))) ? (() => { set_chrome_scheme_bang(false);
-set_content_override_bang(2);
-set_invert_bang(false);
-set_default_invert_bang(false);
-return set_rfp_colorscheme_exempt_bang(false); })() : (((m === "system"))) ? (system_dark_p() ? (() => { set_chrome_scheme_bang(true);
-set_content_override_bang(0);
-set_invert_bang(false);
-set_default_invert_bang(true);
-return set_rfp_colorscheme_exempt_bang(true); })() : (() => { set_chrome_scheme_bang(false);
-set_content_override_bang(1);
-set_invert_bang(false);
-set_default_invert_bang(false);
-return set_rfp_colorscheme_exempt_bang(false); })()) : (((m === "uniform"))) ? (() => { set_chrome_scheme_bang(true);
-set_content_override_bang(1);
-set_invert_bang(true);
-set_default_invert_bang(false);
-return set_rfp_colorscheme_exempt_bang(false); })() : (((m === "light"))) ? (() => { set_chrome_scheme_bang(false);
-set_content_override_bang(1);
-set_invert_bang(false);
-set_default_invert_bang(false);
-return set_rfp_colorscheme_exempt_bang(false); })() : (() => { set_chrome_scheme_bang(true);
-set_content_override_bang(0);
-set_invert_bang(false);
-set_default_invert_bang(true);
-return set_rfp_colorscheme_exempt_bang(true); })());
+function apply() {
+  const s = settingsFor(isEnabled(), getMode());
+  setChromeScheme(s.chrome);
+  setPrefInt(PREF_CONTENT_OVERRIDE, s.override);
+  setPrefBool(PREF_INVERT, s.invert);
+  setPrefBool(PREF_DEFAULT_INVERT, s.hybrid);
+  setRfpColorSchemeExempt(s.rfpExempt);
 }
 
 function toggle() {
-  const new_state = (!enabled_p());
-  (() => { try {
-    return Services.prefs.setBoolPref(PREF_ENABLED, new_state);
-  } catch (__e____scope__24__4__2__2__1__0) {
-    return null;
-  } })();
-  return new_state;
+  const next = !isEnabled();
+  setPrefBool(PREF_ENABLED, next);
+  return next;
 }
 
-function cycle_mode() {
-  const cur = mode_();
-  const nxt = ((((cur === "dark"))) ? "light" : (((cur === "light"))) ? "system" : (((cur === "system"))) ? "dark" : "dark");
-  (() => { try {
-    return Services.prefs.setStringPref(PREF_MODE, nxt);
-  } catch (__e____scope__25__4__2__2__1__0) {
-    return null;
-  } })();
-  return nxt;
+const NEXT_MODE = { dark: "light", light: "system", system: "dark" };
+
+function cycleMode() {
+  const next = NEXT_MODE[getMode()] ?? "dark";
+  setPrefStr(PREF_MODE, next);
+  return next;
 }
 
-function set_darkmode_defaults_bang() {
-  return (() => { try {
+function destroy() {
+  unsubscribe?.();
+  unsubscribe = null;
+  setChromeScheme(false);
+}
+
+function init() {
+  try {
     const d = Services.prefs.getDefaultBranch("");
-  d.setBoolPref(PREF_ENABLED, true);
-  d.setCharPref(PREF_MODE, "dark");
-  return d.setBoolPref(PREF_NORMALIZE, true);
+    d.setBoolPref(PREF_ENABLED, true);
+    d.setCharPref(PREF_MODE, "dark");
+    d.setBoolPref(PREF_NORMALIZE, true);
   } catch (e) {
-    return console.error("gjoa-darkmode: set-darkmode-defaults! failed", e);
-  } })();
-}
-
-function destroy_bang() {
-  const u = state.unsub;
-  if (truthy(u)) {
-    u();
+    console.error("gjoa-darkmode: setting defaults failed", e);
   }
-  (state.unsub = null);
-  return set_chrome_scheme_bang(false);
-}
+  apply();
 
-function init__bang() {
-  set_darkmode_defaults_bang();
-  apply_bang();
-  const observer = {observe: (__s, __t, __d) => apply_bang()};
+  const observer = { observe: () => apply() };
   const mql = window.matchMedia("(prefers-color-scheme: dark)");
-  const on_sys = (__e) => apply_bang();
+  const onSystemChange = () => apply();
   Services.prefs.addObserver(PREF_ENABLED, observer);
   Services.prefs.addObserver(PREF_MODE, observer);
-  mql.addEventListener("change", on_sys);
-  (state.unsub = () => { Services.prefs.removeObserver(PREF_ENABLED, observer);
-Services.prefs.removeObserver(PREF_MODE, observer);
-return mql.removeEventListener("change", on_sys); });
-  (window.gjoaDarkMode = {toggle: toggle, cycleMode: cycle_mode, isEnabled: enabled_p, getMode: mode_});
-  const __el____scope__28__8__1__0 = window;
-  const __ev____scope__28__8__1__3 = "unload";
-  const __h____scope__28__8__1__6 = destroy_bang;
-  __el____scope__28__8__1__0.addEventListener(__ev____scope__28__8__1__3, __h____scope__28__8__1__6, {once: true});
-  if (truthy(((__ev____scope__28__8__1__3 === "unload")) && ((_logical) => (_logical !== false && _logical != null ? __el____scope__28__8__1__0.__gjoaHR.teardowns : _logical))(__el____scope__28__8__1__0.__gjoaHR))) {
-    __el____scope__28__8__1__0.__gjoaHR.teardowns.push(__h____scope__28__8__1__6);
-  }
-  __h____scope__28__8__1__6;
-  return console.log(("".concat("gjoa-darkmode: initialized (enabled=", enabled_p(), ", mode=", mode_(), ")")));
+  mql.addEventListener("change", onSystemChange);
+  unsubscribe = () => {
+    Services.prefs.removeObserver(PREF_ENABLED, observer);
+    Services.prefs.removeObserver(PREF_MODE, observer);
+    mql.removeEventListener("change", onSystemChange);
+  };
+
+  window.gjoaDarkMode = { toggle, cycleMode, isEnabled, getMode };
+  onWindowUnload(destroy);
+  console.log(`gjoa-darkmode: initialized (enabled=${isEnabled()}, mode=${getMode()})`);
 }
 
-init__bang();
+init();

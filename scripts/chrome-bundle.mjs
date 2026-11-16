@@ -95,25 +95,37 @@ function bundle(chromeRoot, entry) {
   ].join("\n");
 }
 
-export function buildChrome({ root, outDir }) {
+// dev: write the layout GjoaLoader's dev mode reads (<dir>/JS, <dir>/CSS and a
+// .bundle-stamp whose mtime triggers a hot reload in running windows).
+export function buildChrome({ root, outDir, dev = false }) {
   const chromeRoot = join(root, "src", "gjoa", "chrome");
   const config = JSON.parse(readFileSync(join(chromeRoot, "bundles.json"), "utf8"));
-  mkdirSync(join(outDir, "scripts"), { recursive: true });
-  mkdirSync(join(outDir, "styles"), { recursive: true });
+  const [jsSub, cssSub] = dev ? ["JS", "CSS"] : ["scripts", "styles"];
+  mkdirSync(join(outDir, jsSub), { recursive: true });
+  mkdirSync(join(outDir, cssSub), { recursive: true });
   for (const entry of config.scripts) {
-    writeFileSync(join(outDir, "scripts", entry.out), bundle(chromeRoot, entry));
-    console.log(`    scripts/${entry.out}`);
+    writeFileSync(join(outDir, jsSub, entry.out), bundle(chromeRoot, entry));
+    console.log(`    ${jsSub}/${entry.out}`);
   }
   for (const css of config.styles) {
-    copyFileSync(join(chromeRoot, "css", css), join(outDir, "styles", css));
-    console.log(`    styles/${css}`);
+    copyFileSync(join(chromeRoot, "css", css), join(outDir, cssSub, css));
+    console.log(`    ${cssSub}/${css}`);
   }
+  if (dev) writeFileSync(join(outDir, ".bundle-stamp"), `${new Date().toISOString()}\n`);
 }
 
-// CLI: node scripts/chrome-bundle.mjs [outDir]   (default: dist/chrome)
+// CLI:
+//   node scripts/chrome-bundle.mjs [outDir]          (default: dist/chrome)
+//   node scripts/chrome-bundle.mjs --dev <bin-dir>   writes <bin-dir>/gjoa-dev/
 if (resolve(process.argv[1] || "") === fileURLToPath(import.meta.url)) {
   const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-  const outDir = resolve(process.argv[2] || join(root, "dist", "chrome"));
-  buildChrome({ root, outDir });
+  const argv = process.argv.slice(2);
+  const dev = argv[0] === "--dev";
+  if (dev && !argv[1]) {
+    console.error("usage: node scripts/chrome-bundle.mjs --dev <dir containing the gjoa binary>");
+    process.exit(2);
+  }
+  const outDir = dev ? resolve(argv[1], "gjoa-dev") : resolve(argv[0] || join(root, "dist", "chrome"));
+  buildChrome({ root, outDir, dev });
   console.log(`chrome bundles written to ${relative(process.cwd(), outDir) || "."}`);
 }

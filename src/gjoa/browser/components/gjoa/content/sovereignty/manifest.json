@@ -3,7 +3,7 @@
   "gjoaVersion": "0.4.1",
   "auditedCommit": "5f65774",
   "generated": "2026-07-27",
-  "method": "static AST audit of all authored chrome (.sys.mjs + emitted .bjs + content .js), every source parsed",
+  "method": "static AST audit of all authored chrome (.sys.mjs + bundled chrome .mjs + content .js), every source parsed",
   "ownCode": {
     "unattendedExternal": [
       {

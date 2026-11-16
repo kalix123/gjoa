@@ -5,7 +5,7 @@
 // Parent half of gjoa's INPUT-STATE actor. Each frame's child reports whether an
 // editable element is focused in IT; the parent aggregates across frames and
 // stamps the live state onto the top <browser> element as `_gjoaEditable`, which
-// chrome (tabs/content-focus.bjs `contentInputFocused`) reads SYNCHRONOUSLY at
+// chrome (tabs/content-focus.mjs `contentInputFocused`) reads SYNCHRONOUSLY at
 // every keydown. The actor transport covers content-process and cross-origin
 // frames that chrome cannot inspect directly.
 //

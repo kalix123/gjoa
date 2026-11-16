@@ -1,8 +1,8 @@
 // gjoa GenAI/ML feature prefs — default branch.
-// Shipped as DEFAULTS by compiling this file and appending its pref() output
-// onto the branding pref file (firefox-branding.js) in tools/prep/branding.bjs
+// Shipped as DEFAULTS by appending this file
+// onto the branding pref file (firefox-branding.js) by scripts/prepare.mjs
 // — the same channel as perf-prefs / adblock-prefs / dark-mode-prefs.
-// (`;;` comments don't survive the beagle→js emit; rationale lives here.)
+//
 //
 // Mozilla's "Link Preview" (browser/components/genai/LinkPreview.sys.mjs) is an
 // AI/ML feature: long-press or right-click a link → it generates an on-device

@@ -59,10 +59,10 @@ provenance debt for a follow-up audit.
 Verify the committed JSON still matches the recorded hash with:
 
 ```sh
-tools/prep/verify-scriptlet-resources.sh
+sha256sum src/gjoa/toolkit/components/content-classifier/scriptlet-resources.json
 ```
 
-(wired into `bun run preflight`). The hash above is the single source of truth —
+The hash above is the single source of truth —
 if the bundle is legitimately refreshed, regenerate it from a **pinned** uBO
 commit, update both the "Harvested from commit/tag" line and this SHA-256, and
 re-run the verifier.

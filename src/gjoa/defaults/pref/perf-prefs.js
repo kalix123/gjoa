@@ -1,10 +1,7 @@
 // gjoa performance prefs — power-user defaults (32 GB+ RAM)
-// Shipped as DEFAULTS by appending the COMPILED output of this file onto the
-// branding pref file (engine/browser/branding/gjoa/pref/firefox-branding.js) in
-// tools/prep/branding.bjs at import time — that is the only pref channel packaged
-// into omni.ja without a Mozilla-source patch. (`;;` comments don't survive the
-// beagle→js emit, so the packaged pref file carries only the pref() statements;
-// the rationale lives here in source.)
+// Shipped as DEFAULTS: scripts/prepare.mjs appends this file to the branding
+// pref file (engine/browser/branding/gjoa/pref/firefox-branding.js), the only
+// pref channel packaged into omni.ja without a Mozilla-source patch.
 
 // --- GC tuning (large nursery, parallel marking) ---
 pref("javascript.options.mem.nursery.min_kb", 4096);

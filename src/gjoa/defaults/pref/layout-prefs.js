@@ -1,8 +1,8 @@
 // gjoa layout prefs — default branch.
-// Shipped as DEFAULTS by compiling this file and appending its pref() output
-// onto the branding pref file (firefox-branding.js) in tools/prep/branding.bjs
+// Shipped as DEFAULTS by appending this file
+// onto the branding pref file (firefox-branding.js) by scripts/prepare.mjs
 // — the same channel as perf-prefs / adblock-prefs / dark-mode-prefs / genai.
-// (`;;` comments don't survive the beagle→js emit; rationale lives here.)
+//
 
 // Dynamic orientation: pick vertical tabs (sidebar) on a wide/full-width window
 // and horizontal tabs on a narrow/half-width one, flipping live as the window
@@ -16,7 +16,7 @@ pref("gjoa.layout.narrowThreshold", 1000);
 
 // The ONE gjoa gap value (#125): the uniform inset/gap, in px, used EVERYWHERE in the
 // floating-card layout — window↔sidebar, sidebar↔content, content↔window edge, and
-// top/bottom are all exactly this. Read by tabs/index.bjs into the --gjoa-card-gap CSS
+// top/bottom are all exactly this. Read by tabs/index.mjs into the --gjoa-card-gap CSS
 // var (live, no restart). 0 = cards flush to the edges and each other.
 pref("gjoa.layout.cardGap", 8);
 

@@ -17,7 +17,7 @@ user-facing modes are `dark`, `uniform`, `light`, `system`, and `off`.
 `gjoa.darkmode.enabled=false` also parks the system. It is the master switch; `off` is
 the corresponding mode value.
 
-The controller in `src/gjoa/chrome/bjs/dark-mode/index.bjs` translates each mode into
+The controller in `src/gjoa/chrome/dark-mode/index.mjs` translates each mode into
 one tuple:
 
 | Mode arm | Chrome scheme | `content-override` | `invert.enabled` | `hybrid.default-invert` | RFP scheme exemption |
@@ -56,11 +56,11 @@ The host-list prefs are:
 
 ```text
 BOOT
-  dark-mode-prefs.bjs supplies baked defaults
+  dark-mode-prefs.js supplies baked defaults
     enabled=true, mode=dark
 
 CHROME INIT
-  index.bjs installs pref + OS-theme observers
+  index.mjs installs pref + OS-theme observers
   apply! writes the mode tuple above
 
 PRE-PAINT ENGINE
@@ -81,8 +81,8 @@ POST LOAD
 
 The implementation surfaces are:
 
-- `src/gjoa/defaults/pref/dark-mode-prefs.bjs`: default values.
-- `src/gjoa/chrome/bjs/dark-mode/index.bjs`: global mode controller.
+- `src/gjoa/defaults/pref/dark-mode-prefs.js`: default values.
+- `src/gjoa/chrome/dark-mode/index.mjs`: global mode controller.
 - `src/gjoa/toolkit/components/content-classifier/GjoaDarkmodeParent.sys.mjs`:
   host policy, curated fixes, and painted-page decisions.
 - `src/gjoa/toolkit/components/content-classifier/GjoaDarkmodeChild.sys.mjs`:
@@ -133,25 +133,11 @@ parameters, not universal constants.
 
 ## Development and verification
 
-Chrome controller changes are Lane 1 and flow through the normal bundle loop:
+The chrome controller (`src/gjoa/chrome/dark-mode/`) and the content actors
+(`src/gjoa/toolkit/components/content-classifier/GjoaDarkmode*.sys.mjs`) are plain
+JavaScript; see [BUILDING.md](BUILDING.md) for iterating on them without a full
+engine rebuild. Native color-transform changes (patches 0009–0014) alter the patch
+set and require a new engine build.
 
-```sh
-bun run check
-bun run chrome:dist
-bun run chrome:install
-```
-
-Native color-transform changes alter the patch set and require a new engine build.
-
-The focused checks are:
-
-```sh
-bun run test:unit
-bun run test:darkmode
-bun run test:contrast
-bun run darkmode:regress
-```
-
-`tools/dm-driver/dm-check.sh` provides a deterministic `uniform`-mode dark-band check.
-Its deep sweep captures all five current modes and asserts the dark band only for
-`uniform`, whose output is intentionally independent of page and OS theme choices.
+The color math is covered by unit tests in `tests/darkmode/` (`npm test`):
+`colormath.cjs` is the reference implementation the C++ text solve mirrors.

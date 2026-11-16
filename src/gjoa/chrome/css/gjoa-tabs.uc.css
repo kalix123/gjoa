@@ -156,7 +156,7 @@
 
 /* Drag of an unpinned row reveals an otherwise-hidden (empty) pinned section as a
  * thin strip, so "drop to pin" has a target with no pinned tab already present.
- * tabs/drag.bjs sets/clears the attribute across dragstart..dragend. */
+ * tabs/drag.mjs sets/clears the attribute across dragstart..dragend. */
 #gjoa-pinned-container[gjoa-drop-strip] {
   min-height: 24px;
   outline: 1px dashed color-mix(in srgb, currentColor 30%, transparent);

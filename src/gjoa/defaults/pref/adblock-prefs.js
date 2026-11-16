@@ -1,8 +1,8 @@
 // gjoa native ad/tracker blocking — default prefs.
-// Shipped as DEFAULTS by compiling this file and appending its pref() output
-// onto the branding pref file (firefox-branding.js) in tools/prep/branding.bjs
+// Shipped as DEFAULTS by appending this file
+// onto the branding pref file (firefox-branding.js) by scripts/prepare.mjs
 // — the only pref channel packaged into omni.ja without a Mozilla-source patch.
-// (`;;` comments don't survive the beagle→js emit; rationale lives here.)
+//
 
 // Master switch for the in-engine adblock-rust content classifier. ON by
 // default — native, third-party ad/tracker blocking with no extension. The C++

@@ -16,7 +16,7 @@
 // service.setFilterListData + applyFilterLists, and synthesize a per-site
 // allow-list from a gjoa pref. No RemoteSettings server, no Mozilla collection.
 //
-// This is a Lane-2 overlay (lands in omni.ja via `bun run import` + mach build).
+// This is a Lane-2 overlay (lands in omni.ja via `node scripts/prepare.mjs` + mach build).
 // On a Firefox version bump this file may need re-syncing if Mozilla changes the
 // client/service contract.
 

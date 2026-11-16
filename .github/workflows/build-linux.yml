@@ -124,12 +124,9 @@ jobs:
           file "$GJOA_BIN"
           file "$GJOA_BIN" | grep -qi "$expected"
 
-      # Chrome-init smoke — FATAL. The single fastest signal that the bake produced
-      # working gjoa chrome: asserts window.gjoaTest + window.Spaces initialize. A
-      # beagle value-semantics / packaging regression (unresolvable $$bc import, or
-      # $$bc undefined in a userscript bundle) silently kills ALL gjoa chrome in the
-      # bake; without this gate CI would go green on a chrome-dead binary (it cost a
-      # whole session 2026-06-21). No `|| true`: if chrome is dead, the build is red.
+      # Chrome-init smoke — FATAL. Starts the binary headless and requires every
+      # chrome bundle to log its init line with no chrome script errors, so CI
+      # can't go green on a build whose window chrome is dead.
       - name: Chrome-init smoke (FATAL)
         run: |
           sudo apt-get install -y xvfb >/dev/null 2>&1 || true

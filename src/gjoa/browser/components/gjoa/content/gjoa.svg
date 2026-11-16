@@ -6,9 +6,9 @@
   was font-size 90 in a 100×100 box, so it overflowed and got cut off
   everywhere). Brand blue reads on both dark and light surfaces.
 
-  Edit this file, then `bun run icons && bun run import`. The generator
-  (tools/icons/generate.bjs) rasterizes this to the icon PNGs and copies it to
-  the about-logo slots; the wordmark slots come from assets/gjoa-wordmark.svg.
+  The branding PNGs in configs/branding/gjoa/ (logoNN.png, content/about-logo*)
+  are rasterized from this file; re-export them by hand if it changes. The
+  wordmark slots come from assets/gjoa-wordmark.svg.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
   <g fill="#4a90d9">

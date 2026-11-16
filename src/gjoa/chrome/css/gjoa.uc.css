@@ -725,7 +725,7 @@
  * `#gjoa-urlbar-toolbar` wrapper. So a `width: 100%` resolved against that
  * ancestor blows past the wrapper's margin inset and spans the whole drawer/
  * window. Instead keep native's `width: var(--urlbar-width)`, which
- * drawer/layout.bjs `sync-urlbar-width` pins to (sidebar width − 2·inset);
+ * drawer/layout.mjs `sync-urlbar-width` pins to (sidebar width − 2·inset);
  * the abs-pos urlbar then sizes to the drawer's inner width and sits at its
  * inset static position (inside the wrapper's margin), so it stays contained
  * and centered. `left/right: auto` keeps it at that static position; the
@@ -778,7 +778,7 @@
  * `--gjoa-urlbar-expand-w` wide; translate it left by (expand-w − resting-w) so
  * its RIGHT edge instead pins at the resting right edge and the extra width
  * grows toward the page/center. `--gjoa-urlbar-resting-w` is the untouched
- * resting width stashed by drawer/layout.bjs (sidebar inner width); the
+ * resting width stashed by drawer/layout.mjs (sidebar inner width); the
  * `--urlbar-width` here is already clobbered to expand-w so it can't be used. */
 :root:not([gjoa-urlbar-floating]) #sidebar-container[sidebar-positionend] #gjoa-urlbar-toolbar #urlbar:is([focused][breakout-extend]) {
   transform: translateX(calc(-1 * (var(--gjoa-urlbar-expand-w) - var(--gjoa-urlbar-resting-w, var(--urlbar-width, 0px))))) !important;
@@ -798,7 +798,7 @@
   --toolbar-field-border-color: var(--toolbar-field-focus-border-color) !important;
 }
 
-/* Ghost: a static look-alike that drawer/urlbar.bjs drops into the resting slot
+/* Ghost: a static look-alike that drawer/urlbar.mjs drops into the resting slot
  * while the Ctrl+L floating palette is active, so the real urlbar lifting to the
  * window centre doesn't collapse the slot or look like the bar "flew out" — the
  * resting bar visually stays where it is. width/height/border-radius are set
@@ -929,7 +929,7 @@ Preserve these (security warnings):
 
 /* Open the resting slot's `overflow: hidden` while floating. NOT a degradation path
  * for a failed popover promotion — an evicted palette is stacked over by the content
- * deck, not clipped; drawer/urlbar.bjs's watchdog is what holds the promotion. */
+ * deck, not clipped; drawer/urlbar.mjs's watchdog is what holds the promotion. */
 :root[gjoa-urlbar-floating] #gjoa-urlbar-toolbar,
 :root[gjoa-urlbar-floating] #gjoa-urlbar-toolbar #urlbar-container {
   overflow: visible !important;
@@ -984,7 +984,7 @@ Preserve these (security warnings):
   to   { opacity: 1; }
 }
 
-/* WINDOW-GLOBAL STAGE — drawer/urlbar.bjs parks #urlbar in here (a direct child of
+/* WINDOW-GLOBAL STAGE — drawer/urlbar.mjs parks #urlbar in here (a direct child of
  * documentElement) while the palette floats, so its fixed geometry resolves against
  * the viewport and it paints over the content deck without the top-layer promotion.
  * `pointer-events: none` keeps the full-viewport stage from eating the backdrop's
@@ -1104,7 +1104,7 @@ Preserve these (security warnings):
 }
 
 /* Keybinding hint footer — #urlbar's LAST child (below .urlbarView), created by
- * drawer/urlbar.bjs on floating activation; this gate is the second lock keeping
+ * drawer/urlbar.mjs on floating activation; this gate is the second lock keeping
  * it out of the resting drawer bar. `position: relative` is load-bearing: it
  * puts the footer above the absolutely-positioned .urlbar-background. */
 #gjoa-urlbar-hints {

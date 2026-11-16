@@ -1,9 +1,7 @@
 // gjoa dark mode prefs — chrome-level dark mode defaults.
-// Shipped as DEFAULTS by appending the COMPILED output of this file onto the
-// branding pref file in tools/prep/branding.bjs at import time (the only pref
-// channel packaged into omni.ja without a Mozilla-source patch). `;;` comments
-// don't survive the beagle→js emit, so the packaged pref file carries only the
-// pref() statements; the rationale lives here in source.
+// Shipped as DEFAULTS: scripts/prepare.mjs appends this file to the branding
+// pref file, the only pref channel packaged into omni.ja without a
+// Mozilla-source patch.
 
 // Master toggle: enables/disables dark mode entirely. ON by default — gjoa is a
 // dark-first browser, so a white site (e.g. YouTube) out of the box is wrong.
@@ -26,7 +24,7 @@ pref("gjoa.darkmode.enabled", true);
 //               gjoa adds NO inversion. NOT dark-first.
 //   "off"     — dark mode disabled (same render as "system"; also flips enabled=false so
 //               the engine is parked, not just pass-through).
-// The live default here must match chrome/bjs/dark-mode/index.bjs.
+// The live default here must match chrome/dark-mode/index.mjs.
 pref("gjoa.darkmode.mode", "dark");
 
 // OVERRIDE / FORCE toggle — the coverage guarantee. When true, the GjoaDarkmode
@@ -51,7 +49,7 @@ pref("gjoa.darkmode.invert.enabled", false);
 // Engine pre-paint default-invert flag (dark and system-dark modes). Read by
 // nsPresContext so a themeless page renders dark from frame 1 (no white flash),
 // retracted pre-paint per-document for sites that authored their own dark theme.
-// Set by the dark-mode chrome module (set-default-invert! in index.bjs) — this
+// Set by the dark-mode chrome module (set-default-invert! in index.mjs) — this
 // default makes the pref a real, backed pref (so a fresh profile / the engine read
 // has a defined value before the chrome module first runs), matching the controller
 // default (off until dark or dark-OS system engages it). Not a user knob.

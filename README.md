@@ -41,50 +41,32 @@ Tagged releases produce draft GitHub releases with portable artifacts for:
 - macOS Apple Silicon (`.dmg`)
 - Windows x86_64 (`.zip`)
 
-Download the artifact for your platform from [Releases](../../releases). Extract archives before launching `gjoa`; AppImages run directly after `chmod +x`. Release artifacts are portable builds and do not use `-march=native`.
+Download the artifact for your platform from [Releases](../../releases). Extract archives before launching `gjoa`; AppImages run directly after `chmod +x`.
 
 ## Build from source
 
+Requires Node 22+, git, curl and tar, plus whatever Mozilla's `mach bootstrap` installs.
+
 ```sh
-bun run init
-nix build .#gjoa-quickbuild --impure
-./result/bin/gjoa
+node scripts/prepare.mjs        # fetch + verify Firefox, apply patches, overlay gjoa
+cd engine
+./mach bootstrap --application-choice=browser   # first time only
+./mach build && ./mach run
 ```
 
-`gjoa-quickbuild` is the practical local build: CPU-portable and without LTO. `.#gjoa` is a personal, CPU-specific build with LTO and `-march=native`; do not distribute it to arbitrary machines.
-
-## Development
-
-Chrome JS and CSS iterate without a full Firefox rebuild:
+Window chrome (tabs, drawer, vim keys, theme) is plain JavaScript under
+`src/gjoa/chrome/` and hot-reloads into a running build without recompiling;
+see [docs/BUILDING.md](docs/BUILDING.md).
 
 ```sh
-direnv allow
-cd engine && ./mach build
-# edit src/gjoa/chrome/bjs/**/*.bjs or src/gjoa/chrome/css/*.uc.css
-gjoa sync
-gjoa hotreload
-```
-
-The repository's `.envrc` activates the Mach toolchain and pinned Beagle
-compiler. `gjoa sync` emits Beagle modules under `dist/chrome/JS/` and stages
-the CSS under `dist/chrome/CSS/`.
-
-Before a full build, run the focused checks:
-
-```sh
-bun run preflight
-bun test
-bun run test:integration
+npm test                        # unit tests (Node's built-in runner)
 ```
 
 ## Documentation
 
-- [Architecture and build map](docs/ARCHITECTURE.md)
-- [Daily development loop](docs/daily-loop.md)
-- [Feature and verification topology](docs/stewardship/topology.md)
-- [Why Beagle](docs/why-beagle.md)
-
-The compiler, patching strategy, and other implementation detail live in those docs rather than in this release-facing page.
+- [Building, developing and updating Firefox](docs/BUILDING.md)
+- [Dark mode](docs/dark-mode.md)
+- [Security policy](docs/security-policy.md)
 
 ## License
 

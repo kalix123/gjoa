@@ -1,7 +1,0 @@
-#lang beagle/js
-(ns gjoa.spaces.index
-  (:require [gjoa.spaces.manager :as mgr]
-            [gjoa.spaces.visibility :as vis]))
-
-(js/export (def make-spaces! Any (js/get mgr .make-spaces)))
-(js/export (def is-in-active-space Any (js/get vis .is-in-active-space)))

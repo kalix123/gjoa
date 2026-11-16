@@ -1,53 +1,20 @@
-# mach build artifacts (mozilla-central source + per-build state)
+# Firefox source tree + build outputs (created by scripts/prepare.mjs / mach)
 engine/
-.dotbuild/
-firefox-*/
-__pycache__/
 dist/
-.beagle-out/
-.beagle-tools/
-.beagle-pin-collects/
-target/
 mozconfig
+__pycache__/
 
-# Bun / Node
 node_modules/
-
-# Nix dev shells / direnv
-.devenv/
-.direnv/
-
-# Nix build output symlink
-result
-result-*
-gjoa-portable
-
-# Local build/test logs
-artifacts/
-
-# Build acceleration caches
-.sccache/
-
-# Gjoa prep tool source cache (downloaded firefox tarballs)
-.cache/
-
-# IDE / OS
-.vscode/
-.DS_Store
 
 # Distribution artifacts
 *.mar
 *.dmg
 *.tar.bz2
-.beagle/
-gjoa-arx
 
-# Private, never-commit strategy/vision docs
-private-docs/
+# IDE / OS
+.vscode/
+.DS_Store
 
-# dev launcher auto-sync stamp (gjoa dev)
-.gjoa-sync-stamp
-
-# Internal agent notes / status / scratch / handoffs — NOT user-facing docs.
-# Keep out of git. Put private notes under docs/private/.
+# Private notes
 docs/private/
+private-docs/

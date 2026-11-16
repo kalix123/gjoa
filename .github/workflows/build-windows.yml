@@ -2,9 +2,8 @@ name: Windows build (x86_64)
 
 # CROSS-COMPILED FROM LINUX — not native on a Windows runner. This is how
 # zen-browser and librewolf actually ship Windows builds, and it sidesteps the
-# entire native-Windows failure class (reserved `con.clj` checkout, the
-# beagle-build bash shebang, CRLF line endings, MozillaBuild, "Windows App SDK
-# dir not present") because the host OS is Linux — which gjoa already builds
+# entire native-Windows failure class (CRLF line endings, MozillaBuild,
+# "Windows App SDK dir not present") because the host OS is Linux — which gjoa already builds
 # green. We add the Windows cross toolchain (Visual Studio + SDK via Mozilla's
 # get_vs.py + WINSYSROOT, wine for MIDL/widl, the win rust target) and a cross
 # mozconfig (--target=x86_64-pc-windows-msvc). Recipe adapted from

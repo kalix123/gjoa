@@ -1,13 +1,13 @@
 // gjoa theme prefs — chrome-theme variant selection (theming-v2 M1).
-// Shipped as DEFAULTS by compiling this file and appending its pref() output
-// onto the branding pref file (firefox-branding.js) in tools/prep/branding.bjs
+// Shipped as DEFAULTS by appending this file
+// onto the branding pref file (firefox-branding.js) by scripts/prepare.mjs
 // — the same channel as perf-prefs / dark-mode-prefs / adblock-prefs / genai /
-// layout. (`;;` comments don't survive the beagle→js emit; rationale lives here.)
+// layout.
 
 // The active chrome-theme variant. gjoa's theme is one OKLCH token system fed by
 // a base16 palette (src/gjoa/chrome/css/gjoa.uc.css); a variant is just a
 // base16 token-set selected by the :root[gjoa-theme="…"] attribute that
-// chrome/bjs/theme/index.bjs stamps from THIS pref. Values:
+// chrome/theme/index.mjs stamps from THIS pref. Values:
 //   "polar-night" — DEFAULT. gjoa's canonical face: the polar-night sea, arctic
 //                   ice, aurora-cyan accent. The shielded identity (no
 //                   gjoa-theme attribute; the :root base16 defaults paint it).
@@ -16,7 +16,7 @@
 //   "system"      — dissolve into the desktop: route the palette through
 //                   Firefox's theme variables (stylix / installed theme / system
 //                   colors) by enabling gjoa.theme.useSystem. The cohesion path.
-// Must match the live default in chrome/bjs/theme/index.bjs (variant- /
+// Must match the live default in chrome/theme/index.mjs (variant- /
 // set-theme-defaults!).
 pref("gjoa.theme.variant", "polar-night");
 

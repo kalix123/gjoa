@@ -6,7 +6,7 @@
 
 /* The `?` / leader cheatsheet. Modern command-palette aesthetic: a soft,
  * elevated, blurred panel with key chips and a calm enter animation. Element
- * created on demand by tabs/vim.bjs and reused; classes are stable. */
+ * created on demand by tabs/vim.mjs and reused; classes are stable. */
 
 #gjoa-which-key {
   position: fixed !important;

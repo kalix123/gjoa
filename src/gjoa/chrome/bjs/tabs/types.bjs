@@ -1,2 +1,0 @@
-#lang beagle/js
-(ns gjoa.tabs.types)

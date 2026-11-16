@@ -1,45 +1,19 @@
+// XUL element construction. Attributes whose value is false/null/undefined are
+// omitted; everything else is stringified.
 
-import { equiv, truthy } from "../lib/value.mjs";
 export function xul(tag, attrs) {
   const el = document.createXULElement(tag);
-  if (truthy(attrs)) {
-    Object.entries(attrs).forEach((entry) => { const name = entry[0];
-const value = entry[1];
-if (((!((value === false))) && ((!((value == null))) && (!(equiv(value, undefined)))))) {
-  return el.setAttribute(name, String(value));
-} });
+  for (const [name, value] of Object.entries(attrs ?? {})) {
+    if (value !== false && value != null) el.setAttribute(name, String(value));
   }
   return el;
 }
 
-export function xul_label(attrs) {
-  return xul("label", attrs);
-}
-
-export function xul_hbox(attrs) {
-  return xul("hbox", attrs);
-}
-
-export function xul_vbox(attrs) {
-  return xul("vbox", attrs);
-}
-
-export function xul_box(attrs) {
-  return xul("box", attrs);
-}
-
-export function xul_image(attrs) {
-  return xul("image", attrs);
-}
-
-export function xul_menu_popup(attrs) {
-  return xul("menupopup", attrs);
-}
-
-export function xul_menu_item(attrs) {
-  return xul("menuitem", attrs);
-}
-
-export function xul_menu_separator(attrs) {
-  return xul("menuseparator", attrs);
-}
+export const xul_label = (attrs) => xul("label", attrs);
+export const xul_hbox = (attrs) => xul("hbox", attrs);
+export const xul_vbox = (attrs) => xul("vbox", attrs);
+export const xul_box = (attrs) => xul("box", attrs);
+export const xul_image = (attrs) => xul("image", attrs);
+export const xul_menu_popup = (attrs) => xul("menupopup", attrs);
+export const xul_menu_item = (attrs) => xul("menuitem", attrs);
+export const xul_menu_separator = (attrs) => xul("menuseparator", attrs);

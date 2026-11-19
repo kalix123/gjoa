@@ -39,7 +39,7 @@ bind g0 tabfirst
 bind g$ tablast
 bind d tabclose
 bind u tabundo
-bind t tabopen
+bind t cmdline tabopen      " type an address or search, Enter opens it in a new tab
 bind yt tabduplicate
 bind gp tabpin
 bind gb togglesidebar

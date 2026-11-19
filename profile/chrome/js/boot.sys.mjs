@@ -137,7 +137,8 @@ async function openConfig() {
 // Commands that need this module's state (config, UI).
 const META = {
   help: (win) => showHelp(win, { config, userConfig: USER_VIMRC, defaultsConfig: DEFAULTS_VIMRC }),
-  cmdline: (win, n, args) => showCmdline(win, { run: (line) => runLine(win, line), initial: args.join(" ") }),
+  // `bind t cmdline tabopen` opens the line pre-filled with "tabopen ".
+  cmdline: (win, n, args) => showCmdline(win, { run: (line) => runLine(win, line), initial: args.length ? args.join(" ") + " " : "" }),
   config: (win) => {
     openConfig().then((msg) => showStatus(win, msg, true), (e) => showStatus(win, `config: ${e.message}`, true));
   },
@@ -294,7 +295,25 @@ function setUpWindow(win) {
   win.addEventListener("keydown", (e) => onChromeKey(win, e), true);
   win.gBrowser.tabContainer.addEventListener("TabSelect", () => {
     showStatus(win, tabStatus.get(win.gBrowser.selectedBrowser) ?? "");
+    keepFocusOnNewTabPage(win);
   });
+  win.gBrowser.tabContainer.addEventListener("TabOpen", () => keepFocusOnNewTabPage(win));
+}
+
+// Firefox puts the cursor in the address bar on a new tab, so keys like d
+// would be typed there. Give focus back to the page (o or Ctrl+L still go to
+// the address bar). Checked a few times because Firefox focuses it a little
+// after the tab appears.
+const NEW_TAB_PAGES = new Set(["about:newtab", "about:home", "about:blank", "about:privatebrowsing"]);
+function keepFocusOnNewTabPage(win) {
+  for (const delay of [0, 60, 250, 600]) {
+    setTimeout(() => {
+      const browser = win.gBrowser.selectedBrowser;
+      if (NEW_TAB_PAGES.has(browser.currentURI.spec) && win.gURLBar.focused && !win.gURLBar.value) {
+        browser.focus();
+      }
+    }, delay);
+  }
 }
 
 // --- start -------------------------------------------------------------------

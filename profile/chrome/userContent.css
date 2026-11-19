@@ -1,11 +1,49 @@
-/* Styling for Firefox's own pages (new tab, about:*). Web pages are left alone. */
+/* Styling for Firefox's own pages. Web pages are left alone. */
 
-@-moz-document url("about:newtab"), url("about:home"), url("about:blank") {
+/* New tab: see-through (the window's acrylic backdrop shows behind it, with
+   browser.tabs.allow_transparent_browser on), just the search box and
+   shortcuts left. */
+@-moz-document url("about:newtab"), url("about:home") {
   :root,
-  body {
-    background-color: #2e3440 !important;
-    --newtab-background-color: #2e3440 !important;
-    --newtab-background-color-secondary: #3b4252 !important;
-    --newtab-text-primary-color: #e5e9f0 !important;
+  body,
+  .outer-wrapper,
+  .discovery-stream,
+  main {
+    background: transparent !important;
+    --newtab-background-color: transparent !important;
+    --newtab-background-color-secondary: rgb(255 255 255 / 0.06) !important;
+    --newtab-text-primary-color: #d8dee9 !important;
+    --newtab-element-hover-color: rgb(255 255 255 / 0.08) !important;
+  }
+  /* Faint teal glow along the bottom, as in the old look. */
+  body::after {
+    content: "";
+    position: fixed;
+    inset: auto 8% 9% 8%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgb(95 168 211 / 0.55), transparent);
+    box-shadow: 0 0 18px 2px rgb(95 168 211 / 0.25);
+    pointer-events: none;
+  }
+  .logo-and-wordmark-wrapper,
+  .personalize-button,
+  .wallpaper-attribution,
+  .weather,
+  .ds-highlights,
+  .ds-section,
+  .context-menu-button {
+    display: none !important;
+  }
+  .search-wrapper .search-handoff-button,
+  .search-wrapper input {
+    background-color: rgb(255 255 255 / 0.05) !important;
+    border: 1px solid rgb(255 255 255 / 0.18) !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+    color: #d8dee9 !important;
+  }
+  .top-site-outer .tile {
+    background: rgb(255 255 255 / 0.06) !important;
+    box-shadow: none !important;
   }
 }

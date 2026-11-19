@@ -1,115 +1,235 @@
 /* Browser window styling (Firefox 160, native vertical tabs).
-   Element ids come from the live window; see README for how to inspect them. */
+   Look: a see-through window (Windows acrylic, see user.js) holding two
+   floating cards — the sidebar, with the toolbar and address bar on top, and
+   the page. Element ids come from the live window (scripts/dev-eval.mjs). */
 
-/* ---- Palette (Nord "polar night") ------------------------------------- */
+/* ---- Tokens ----------------------------------------------------------- */
 :root {
-  --c-bg: #242933;        /* window frame, sidebar */
-  --c-surface: #2e3440;   /* fields, hovered tabs */
-  --c-raised: #3b4252;    /* selected tab, menus */
-  --c-line: #434c5e;
-  --c-text: #e5e9f0;
-  --c-muted: #9aa3b5;
-  --c-accent: #88c0d0;
-  --c-radius: 8px;
+  --c-sidebar-w: 280px;
   --c-gap: 8px;
+  --c-radius: 10px;
+  --c-toolbox-h: 84px;               /* button row + address bar row */
+  --c-caption-h: 32px;               /* strip above the page for the window buttons */
 
-  /* Firefox's own theme variables, so built-in widgets follow the palette. */
-  --lwt-accent-color: var(--c-bg) !important;
-  --lwt-text-color: var(--c-text) !important;
-  --toolbox-bgcolor: var(--c-bg) !important;
-  --toolbox-textcolor: var(--c-text) !important;
-  --toolbar-bgcolor: var(--c-bg) !important;
+  --c-text: #d8dee9;
+  --c-muted: #8b95a7;
+  --c-accent: #5fa8d3;
+  --c-line: rgb(255 255 255 / 0.10);
+  --c-line-strong: rgb(255 255 255 / 0.32);
+  --c-card-sidebar: rgb(12 16 24 / 0.72);
+  --c-card-page: rgb(24 27 33 / 0.55);
+  --c-field: rgb(255 255 255 / 0.05);
+  --c-hover: rgb(255 255 255 / 0.06);
+  --c-menu: rgb(28 32 40 / 0.96);
+
+  /* Firefox's theme variables, so built-in widgets follow along. */
+  --toolbar-bgcolor: transparent !important;
   --toolbar-color: var(--c-text) !important;
-  --toolbar-field-background-color: var(--c-surface) !important;
-  --toolbar-field-focus-background-color: var(--c-raised) !important;
+  --toolbox-bgcolor: transparent !important;
+  --toolbox-textcolor: var(--c-text) !important;
+  --toolbar-field-background-color: var(--c-field) !important;
+  --toolbar-field-focus-background-color: rgb(20 24 32 / 0.95) !important;
   --toolbar-field-color: var(--c-text) !important;
   --toolbar-field-focus-color: var(--c-text) !important;
-  --toolbar-field-border-color: transparent !important;
+  --toolbar-field-border-color: var(--c-line-strong) !important;
   --toolbar-field-focus-border-color: var(--c-accent) !important;
-  --sidebar-background-color: var(--c-bg) !important;
+  --toolbarbutton-icon-fill: var(--c-text) !important;
+  --toolbarbutton-hover-background: var(--c-hover) !important;
+  --sidebar-background-color: transparent !important;
   --sidebar-text-color: var(--c-text) !important;
   --sidebar-border-color: transparent !important;
-  --tab-selected-bgcolor: var(--c-raised) !important;
+  --tab-selected-bgcolor: transparent !important;
   --tab-selected-textcolor: var(--c-text) !important;
-  --tab-hover-background-color: var(--c-surface) !important;
-  --arrowpanel-background: var(--c-raised) !important;
+  --tabpanel-background-color: transparent !important;
+  --chrome-content-separator-color: transparent !important;
+  --arrowpanel-background: var(--c-menu) !important;
   --arrowpanel-color: var(--c-text) !important;
   --arrowpanel-border-color: var(--c-line) !important;
   --focus-outline-color: var(--c-accent) !important;
-  --toolbarbutton-icon-fill: var(--c-text) !important;
-  --chrome-content-separator-color: transparent !important;
-  --tabpanel-background-color: var(--c-surface) !important;
+  color-scheme: dark !important;
 }
 
-#main-window,
+/* ---- Let the window backdrop show through ------------------------------- */
+/* One dark tint over the blur (Windows tints it light in light mode). */
+#main-window {
+  background: rgb(8 10 16 / 0.55) !important;
+}
+#main-window body,
 #navigator-toolbox,
 #nav-bar,
 #browser,
-#sidebar-main,
-#tabbrowser-tabbox {
-  background-color: var(--c-bg) !important;
-  color: var(--c-text) !important;
-}
-
-#navigator-toolbox,
-#nav-bar {
+#sidebar-container,
+sidebar-main,
+#tabbrowser-tabbox,
+#tabbrowser-tabpanels,
+.browserSidebarContainer,
+.browserContainer {
+  background: transparent !important;
   border: none !important;
   box-shadow: none !important;
 }
 
-/* ---- Toolbar ----------------------------------------------------------- */
-/* The tab list lives in the sidebar, so the "all tabs" button is redundant. */
-#alltabs-button {
+/* ---- Sidebar card --------------------------------------------------------- */
+sidebar-main {
+  width: var(--c-sidebar-w) !important;
+  min-width: var(--c-sidebar-w) !important;
+  max-width: var(--c-sidebar-w) !important;
+  --sidebar-expanded-launcher-width: var(--c-sidebar-w) !important; /* inner layout width */
+  margin: var(--c-gap) 0 var(--c-gap) var(--c-gap) !important;
+  padding-top: calc(var(--c-toolbox-h) + 4px) !important;
+  background: var(--c-card-sidebar) !important;
+  border-radius: var(--c-radius) !important;
+  outline: 1px solid var(--c-line) !important;
+  outline-offset: -1px;
+  box-shadow: 0 8px 28px rgb(0 0 0 / 0.35) !important;
+}
+
+/* Fixed width: hide the resize handle between sidebar and page. */
+#sidebar-launcher-splitter {
   display: none !important;
 }
 
-#urlbar-background,
+/* ---- Toolbar, moved on top of the sidebar card ----------------------------- */
+#navigator-toolbox {
+  position: fixed !important;
+  top: var(--c-gap) !important;
+  left: var(--c-gap) !important;
+  width: var(--c-sidebar-w) !important;
+  z-index: 3 !important;
+}
+
+#nav-bar {
+  padding: 8px 10px 0 !important;
+}
+#nav-bar-customization-target {
+  flex-wrap: wrap !important;
+  row-gap: 8px !important;
+}
+#nav-bar-customization-target > :is(toolbarspring, .customizableui-special-spring) {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+}
+/* Address bar gets its own full-width row. */
+#urlbar-container {
+  order: 99 !important;
+  flex: 1 1 100% !important;
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+/* The ☰ menu lives outside the customizable row; pin it to the top-left and
+   make room for it in the first row only. */
+#nav-bar {
+  position: relative !important;
+}
+#PanelUI-button {
+  position: absolute !important;
+  top: 8px !important;
+  left: 10px !important;
+  margin: 0 !important;
+}
+#nav-bar-customization-target {
+  margin-inline-start: 0 !important;
+}
+#nav-bar-customization-target > :first-child {
+  margin-inline-start: 34px !important;
+}
+
+#urlbar,
+#urlbar-input-container {
+  min-height: 32px !important;
+}
 #urlbar .urlbar-background {
-  border-radius: var(--c-radius) !important;
-  border: 1px solid transparent !important;
+  border-radius: 6px !important;
+  border: 1px solid var(--toolbar-field-border-color) !important;
   box-shadow: none !important;
 }
 #urlbar[focused] .urlbar-background {
   border-color: var(--c-accent) !important;
 }
-
-/* ---- Content area: a floating card with a gap around it --------------- */
-#tabbrowser-tabbox {
-  padding: 0 var(--c-gap) var(--c-gap) 0 !important;
+/* Results open wider than the sidebar, over the page. */
+#urlbar[breakout][breakout-extend] {
+  width: min(640px, calc(100vw - 2 * var(--c-gap))) !important;
 }
-#tabbrowser-tabpanels {
-  background-color: var(--c-bg) !important;
+
+/* Window caption buttons (minimise / maximise / close) in a strip above the
+   page card; the strip doubles as the window's drag handle. */
+.titlebar-buttonbox-container {
+  position: fixed !important;
+  top: 0 !important;
+  left: calc(var(--c-sidebar-w) + var(--c-gap)) !important;
+  right: 0 !important;
+  height: var(--c-caption-h) !important;
+  justify-content: flex-end !important;
+  -moz-window-dragging: drag;
+  z-index: 4 !important;
+}
+.titlebar-buttonbox {
+  -moz-window-dragging: no-drag;
+}
+.titlebar-button {
+  padding-block: 0 !important;
+}
+.titlebar-button {
+  opacity: 0.6;
+}
+.titlebar-button:hover {
+  opacity: 1;
+}
+
+#alltabs-button {
+  display: none !important;
+}
+
+/* ---- Page card --------------------------------------------------------- */
+#tabbrowser-tabbox {
+  padding: var(--c-caption-h) var(--c-gap) var(--c-gap) var(--c-gap) !important;
 }
 .browserStack {
   border-radius: var(--c-radius) !important;
   overflow: clip !important;
+  background: var(--c-card-page) !important;
   outline: 1px solid var(--c-line) !important;
   outline-offset: -1px;
-  box-shadow: 0 2px 12px rgb(0 0 0 / 0.35) !important;
+  box-shadow: 0 8px 28px rgb(0 0 0 / 0.35) !important;
 }
 .browserStack > browser {
   border-radius: var(--c-radius) !important;
 }
 
-/* No line between the sidebar and the content. */
-#sidebar-launcher-splitter {
-  background: transparent !important;
-  border: none !important;
+/* ---- Tabs -------------------------------------------------------------- */
+#vertical-tabs {
+  flex-direction: column !important;
+  padding-inline: 10px !important;
 }
-
-/* ---- Vertical tabs ------------------------------------------------------ */
+#vertical-tabs::before {
+  content: "Tabs";
+  display: block;
+  padding: 6px 4px 8px;
+  font-weight: 600;
+  font-size: 0.95em;
+  color: var(--c-text);
+}
 #tabbrowser-tabs[orient="vertical"] .tabbrowser-tab {
-  padding-block: 1px !important;
+  padding-block: 2px !important;
 }
 #tabbrowser-tabs[orient="vertical"] .tab-background {
-  border-radius: 6px !important;
-  border: none !important;
+  border-radius: 5px !important;
+  border: 1px solid transparent !important;
   outline: none !important;
   box-shadow: none !important;
+  background: transparent !important;
+}
+#tabbrowser-tabs[orient="vertical"] .tabbrowser-tab:hover .tab-background {
+  background: var(--c-hover) !important;
 }
 #tabbrowser-tabs[orient="vertical"] .tabbrowser-tab[selected] .tab-background {
-  background: var(--c-raised) !important;
-  box-shadow: inset 3px 0 0 var(--c-accent) !important;
+  background: rgb(255 255 255 / 0.04) !important;
+  border-color: var(--c-line-strong) !important;
+}
+#tabbrowser-tabs[orient="vertical"] .tab-label {
+  font-size: 1.05em;
 }
 #tabbrowser-tabs[orient="vertical"] .tabbrowser-tab:not([selected]) .tab-label {
   color: var(--c-muted) !important;
@@ -117,7 +237,6 @@
 #tabbrowser-tabs[orient="vertical"] .tabbrowser-tab:hover .tab-label {
   color: var(--c-text) !important;
 }
-/* Close buttons only on hover or on the selected tab. */
 #tabbrowser-tabs[orient="vertical"] .tabbrowser-tab:not(:hover, [selected]) .tab-close-button {
   visibility: hidden !important;
 }
@@ -125,7 +244,7 @@
 /* ---- Menus and panels -------------------------------------------------- */
 menupopup,
 panel {
-  --panel-background: var(--c-raised) !important;
+  --panel-background: var(--c-menu) !important;
   --panel-color: var(--c-text) !important;
   --panel-border-color: var(--c-line) !important;
   --panel-border-radius: var(--c-radius) !important;

@@ -17,10 +17,20 @@ user_pref("browser.tabs.tabmanager.enabled", false);  // the "list all tabs" arr
 
 // Toolbar layout, pinned so Firefox's first-run migrations can't shuffle it.
 // currentVersion must match Firefox's (28 in Firefox 160) or it re-migrates.
-user_pref("browser.uiCustomization.state", "{\"placements\":{\"widget-overflow-fixed-list\":[],\"unified-extensions-area\":[],\"nav-bar\":[\"sidebar-button\",\"back-button\",\"forward-button\",\"stop-reload-button\",\"urlbar-container\",\"unified-extensions-button\"],\"toolbar-menubar\":[\"menubar-items\"],\"TabsToolbar\":[],\"vertical-tabs\":[\"tabbrowser-tabs\"],\"PersonalToolbar\":[\"personal-bookmarks\"]},\"seen\":[\"reset-pbm-toolbar-button\",\"smartwindow-group-tabs-button\",\"ai-window-toggle\",\"developer-button\",\"screenshot-button\",\"alltabs-button\"],\"dirtyAreaCache\":[\"nav-bar\",\"vertical-tabs\"],\"currentVersion\":28,\"newElementCount\":0}");
+user_pref("browser.uiCustomization.state", "{\"placements\":{\"widget-overflow-fixed-list\":[],\"unified-extensions-area\":[],\"nav-bar\":[\"unified-extensions-button\",\"spring\",\"back-button\",\"forward-button\",\"stop-reload-button\",\"sidebar-button\",\"urlbar-container\"],\"toolbar-menubar\":[\"menubar-items\"],\"TabsToolbar\":[],\"vertical-tabs\":[\"tabbrowser-tabs\"],\"PersonalToolbar\":[\"personal-bookmarks\"]},\"seen\":[\"reset-pbm-toolbar-button\",\"smartwindow-group-tabs-button\",\"ai-window-toggle\",\"developer-button\",\"screenshot-button\",\"alltabs-button\"],\"dirtyAreaCache\":[\"nav-bar\",\"vertical-tabs\"],\"currentVersion\":28,\"newElementCount\":0}");
+
+// --- See-through window (Windows 11 acrylic blur) ------------------------------
+// toplevel-backdrop: 0 auto, 1 Mica, 2 acrylic (blurs what's behind the window),
+// 3 Mica Alt. userChrome.css keeps the chrome translucent so it shows through.
+user_pref("widget.windows.mica", true);
+user_pref("widget.windows.mica.toplevel-backdrop", 2);
+user_pref("widget.windows.mica.popups", 2);
+user_pref("browser.tabs.allow_transparent_browser", true); // lets the new tab page be see-through
+user_pref("layout.css.backdrop-filter.enabled", true);
 
 // --- Dark everywhere ---------------------------------------------------------
-user_pref("extensions.activeThemeID", "firefox-compact-dark@mozilla.org");
+// The default (system) theme: built-in color themes disable the backdrop.
+user_pref("extensions.activeThemeID", "default-theme@mozilla.org");
 user_pref("layout.css.prefers-color-scheme.content-override", 0); // sites get dark mode when they support it
 user_pref("browser.theme.content-theme", 0);
 user_pref("browser.theme.toolbar-theme", 0);

@@ -286,6 +286,11 @@ sidebar-main,
 }
 #tabbrowser-tabs[orient="vertical"] {
   --tab-min-height: 34px !important;
+  /* While a tab is dragged Firefox makes it position:absolute with
+     top = (its offset from #tabbrowser-tabs). That only lands right if the
+     tab list is the containing block; with the toolbar stacked above the
+     list, dragged tabs otherwise jumped ~124px up. */
+  position: relative !important;
 }
 #tabbrowser-tabs[orient="vertical"] .tabbrowser-tab {
   padding-block: 1px !important;

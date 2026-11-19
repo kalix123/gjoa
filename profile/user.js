@@ -10,7 +10,7 @@ user_pref("sidebar.verticalTabs", true);
 user_pref("sidebar.visibility", "always-show");      // or "expand-on-hover" for a slim strip
 user_pref("sidebar.expandOnHover", false);
 user_pref("browser.toolbars.bookmarks.visibility", "never");
-user_pref("browser.uidensity", 1);                    // compact toolbars
+user_pref("browser.uidensity", 0);                    // normal spacing (userChrome sets its own)
 user_pref("browser.compactmode.show", true);
 user_pref("browser.tabs.firefox-view", false);
 user_pref("browser.tabs.tabmanager.enabled", false);  // the "list all tabs" arrow

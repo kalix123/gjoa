@@ -1,9 +1,10 @@
-// Run JavaScript in a running gjoa Firefox's chrome (browser window) context
-// over Marionette. Start Firefox with `install-profile.mjs --launch --marionette`.
+// Run JavaScript in a running Firefox's chrome (browser window) context
+// over Marionette. Start Firefox with `node scripts/install.mjs --launch --marionette`.
 //
 //   node scripts/dev-eval.mjs "return Services.appinfo.version"
 //   node scripts/dev-eval.mjs --file some-script.js
 //   node scripts/dev-eval.mjs --screenshot out.png    (the whole browser window)
+//   node scripts/dev-eval.mjs --content "return document.title"   (in the selected tab's page)
 //
 // The script body runs like a function in the browser window; `return` a
 // JSON-serialisable value to print it.
@@ -12,6 +13,8 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { connect } from "node:net";
 
 const argv = process.argv.slice(2);
+const inContent = argv[0] === "--content";
+if (inContent) argv.shift();
 const shotPath = argv[0] === "--screenshot" ? argv[1] : null;
 const script = shotPath ? null : argv[0] === "--file" ? readFileSync(argv[1], "utf8") : argv.join(" ");
 const port = Number(process.env.MARIONETTE_PORT ?? 2828);
@@ -78,6 +81,11 @@ try {
   await greeting;
   await send("WebDriver:NewSession", { capabilities: {} });
   await send("Marionette:SetContext", { value: "chrome" });
+  if (inContent) {
+    // Point the session at the selected tab, then run in its page.
+    await send("WebDriver:SwitchToWindow", { handle: (await send("WebDriver:GetWindowHandle")).value });
+    await send("Marionette:SetContext", { value: "content" });
+  }
   if (shotPath) {
     const res = await send("WebDriver:TakeScreenshot", { full: false, hash: false });
     writeFileSync(shotPath, Buffer.from(res.value, "base64"));
@@ -86,7 +94,7 @@ try {
     // Wrapped so scripts can use await; Marionette waits for the promise.
     const res = await send("WebDriver:ExecuteScript", { script: `return (async () => {
 ${script}
-})();`, args: [], sandbox: "system" });
+})();`, args: [], ...(inContent ? {} : { sandbox: "system" }) });
     const value = res?.value;
     console.log(typeof value === "string" ? value : JSON.stringify(value, null, 2));
   }

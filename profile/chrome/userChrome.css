@@ -274,16 +274,29 @@ button-group.tools-and-extensions,
 #vertical-tabs::before {
   content: "Tabs";
   display: block;
-  padding: 6px 4px 8px;
+  padding: 10px 6px 6px;
+  font-size: 0.78em;
   font-weight: 600;
-  font-size: 0.95em;
-  color: var(--c-text);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--c-muted);
+}
+/* No "+ New Tab" row: Ctrl+T, or middle-click empty space in the list. */
+#tabs-newtab-button,
+#vertical-tabs-newtab-button {
+  display: none !important;
+}
+#tabbrowser-tabs[orient="vertical"] {
+  --tab-min-height: 34px !important;
 }
 #tabbrowser-tabs[orient="vertical"] .tabbrowser-tab {
-  padding-block: 2px !important;
+  padding-block: 1px !important;
+}
+#tabbrowser-tabs[orient="vertical"] .tab-content {
+  padding-inline: 10px 8px !important;
 }
 #tabbrowser-tabs[orient="vertical"] .tab-background {
-  border-radius: 5px !important;
+  border-radius: 6px !important;
   border: 1px solid transparent !important;
   outline: none !important;
   box-shadow: none !important;
@@ -293,20 +306,53 @@ button-group.tools-and-extensions,
   background: var(--c-hover) !important;
 }
 #tabbrowser-tabs[orient="vertical"] .tabbrowser-tab[selected] .tab-background {
-  background: rgb(255 255 255 / 0.04) !important;
-  border-color: var(--c-line-strong) !important;
+  background: rgb(255 255 255 / 0.05) !important;
+  border-color: rgb(255 255 255 / 0.22) !important;
 }
 #tabbrowser-tabs[orient="vertical"] .tab-label {
-  font-size: 1.05em;
+  font-size: 13.5px;
 }
 #tabbrowser-tabs[orient="vertical"] .tabbrowser-tab:not([selected]) .tab-label {
   color: var(--c-muted) !important;
+}
+#tabbrowser-tabs[orient="vertical"] .tabbrowser-tab:not([selected]) .tab-icon-image {
+  opacity: 0.75;
 }
 #tabbrowser-tabs[orient="vertical"] .tabbrowser-tab:hover .tab-label {
   color: var(--c-text) !important;
 }
 #tabbrowser-tabs[orient="vertical"] .tabbrowser-tab:not(:hover, [selected]) .tab-close-button {
-  visibility: hidden !important;
+  display: none !important;
+}
+#tabbrowser-tabs[orient="vertical"] .tab-close-button {
+  opacity: 0.6;
+}
+
+/* ---- Decluttering the toolbar and address bar --------------------------- */
+#nav-bar {
+  --toolbarbutton-inner-padding: 7px !important;
+  --toolbarbutton-outer-padding: 1px !important;
+}
+#nav-bar .toolbarbutton-1 {
+  opacity: 0.85;
+}
+#nav-bar .toolbarbutton-1:hover {
+  opacity: 1;
+}
+/* The sidebar button is "checked" while the sidebar is open; no highlight. */
+#sidebar-button[checked] > .toolbarbutton-icon,
+#sidebar-button[checked] .toolbarbutton-badge-stack {
+  background: transparent !important;
+}
+/* Address bar: just the lock/shield and the text. Ctrl+D still bookmarks. */
+#taskbar-tabs-button,
+#star-button-box,
+#urlbar .searchmode-switcher,
+#tracking-protection-icon-container:not([hasException]) {
+  display: none !important;
+}
+#urlbar .urlbar-input {
+  font-size: 13.5px !important;
 }
 
 /* ---- Menus and panels -------------------------------------------------- */

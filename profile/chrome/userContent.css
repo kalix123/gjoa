@@ -21,6 +21,52 @@
   }
 }
 
+/* addons.mozilla.org: same see-through page and frosted cards. Class names
+   read from the live site (Nov 2026); AMO restyles occasionally. */
+@-moz-document domain("addons.mozilla.org") {
+  html,
+  body,
+  .Page-content,
+  .Page,
+  .Header,
+  .Footer,
+  .App,
+  .HeroRecommendation {
+    background-color: transparent !important;
+    background-image: none !important;
+  }
+  .Card-header,
+  .Card-contents,
+  .Card-footer,
+  .Card-footer-link,
+  .SearchResult,
+  .SecondaryHero-module,
+  .AddonTitle,
+  .Addon-header,
+  .AddonMeta,
+  .AddonDescription,
+  .Addon-details > *,
+  .ShowMoreCard,
+  .Card {
+    background-color: rgb(255 255 255 / 0.045) !important;
+  }
+  .Card {
+    border: 1px solid rgb(255 255 255 / 0.08) !important;
+    border-radius: 10px !important;
+    overflow: hidden;
+    box-shadow: none !important;
+  }
+  .Card .Card-header,
+  .Card .Card-contents,
+  .Card .Card-footer,
+  .Card .SearchResult {
+    background-color: transparent !important;
+  }
+  .HeroRecommendation {
+    border-bottom: 1px solid rgb(255 255 255 / 0.08);
+  }
+}
+
 /* New tab: see-through (the window's acrylic backdrop shows behind it, with
    browser.tabs.allow_transparent_browser on), just the search box and
    shortcuts left. */

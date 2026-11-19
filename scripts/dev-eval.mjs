@@ -16,7 +16,27 @@ const shotPath = argv[0] === "--screenshot" ? argv[1] : null;
 const script = shotPath ? null : argv[0] === "--file" ? readFileSync(argv[1], "utf8") : argv.join(" ");
 const port = Number(process.env.MARIONETTE_PORT ?? 2828);
 
-const sock = connect(port, "127.0.0.1");
+// Firefox opens the Marionette port a few seconds into startup: retry for
+// up to 30 s (DEV_EVAL_WAIT_MS) before giving up.
+async function connectWithRetry() {
+  const deadline = Date.now() + Number(process.env.DEV_EVAL_WAIT_MS ?? 30000);
+  for (;;) {
+    const s = connect(port, "127.0.0.1");
+    const ok = await new Promise((resolve) => {
+      s.once("connect", () => resolve(true));
+      s.once("error", () => resolve(false));
+    });
+    if (ok) return s;
+    s.destroy();
+    if (Date.now() > deadline) {
+      console.error(`Can't reach Marionette on port ${port}. Launch with --marionette.`);
+      process.exit(1);
+    }
+    await new Promise((r) => setTimeout(r, 500));
+  }
+}
+
+const sock = await connectWithRetry();
 let buf = Buffer.alloc(0);
 let nextId = 1;
 const waiting = new Map();
@@ -42,7 +62,7 @@ sock.on("data", (chunk) => {
   }
 });
 sock.on("error", (e) => {
-  console.error(`Can't reach Marionette on port ${port} (${e.code}). Launch with --marionette.`);
+  console.error(`Marionette connection lost (${e.code}).`);
   process.exit(1);
 });
 
@@ -63,7 +83,10 @@ try {
     writeFileSync(shotPath, Buffer.from(res.value, "base64"));
     console.log(`saved ${shotPath}`);
   } else {
-    const res = await send("WebDriver:ExecuteScript", { script, args: [], sandbox: "system" });
+    // Wrapped so scripts can use await; Marionette waits for the promise.
+    const res = await send("WebDriver:ExecuteScript", { script: `return (async () => {
+${script}
+})();`, args: [], sandbox: "system" });
     const value = res?.value;
     console.log(typeof value === "string" ? value : JSON.stringify(value, null, 2));
   }

@@ -1,5 +1,26 @@
 /* Styling for Firefox's own pages. Web pages are left alone. */
 
+/* Settings, add-ons, about:config and the rest: see-through page, frosted
+   cards. These pages paint with Firefox's design-system colors
+   (--background-color-canvas for the page, --background-color-box for cards;
+   read from about:preferences in Firefox 160), which websites don't use. */
+@-moz-document url-prefix("about:"), url-prefix("chrome://browser/content/preferences/") {
+  :root {
+    --background-color-canvas: transparent !important;
+    --background-color-box: rgb(255 255 255 / 0.045) !important;
+    --background-color-box-info: rgb(255 255 255 / 0.06) !important;
+    --in-content-page-background: transparent !important;
+    --in-content-box-background: rgb(255 255 255 / 0.045) !important;
+    --in-content-categories-background: transparent !important;
+    background-color: transparent !important;
+  }
+  moz-card,
+  .card {
+    border: 1px solid rgb(255 255 255 / 0.08) !important;
+    box-shadow: none !important;
+  }
+}
+
 /* New tab: see-through (the window's acrylic backdrop shows behind it, with
    browser.tabs.allow_transparent_browser on), just the search box and
    shortcuts left. */

@@ -14,10 +14,11 @@ user_pref("browser.uidensity", 1);                    // compact toolbars
 user_pref("browser.compactmode.show", true);
 user_pref("browser.tabs.firefox-view", false);
 user_pref("browser.tabs.tabmanager.enabled", false);  // the "list all tabs" arrow
+user_pref("browser.download.autohideButton", false);  // downloads button always in the sidebar footer
 
 // Toolbar layout, pinned so Firefox's first-run migrations can't shuffle it.
 // currentVersion must match Firefox's (28 in Firefox 160) or it re-migrates.
-user_pref("browser.uiCustomization.state", "{\"placements\":{\"widget-overflow-fixed-list\":[],\"unified-extensions-area\":[],\"nav-bar\":[\"unified-extensions-button\",\"spring\",\"back-button\",\"forward-button\",\"stop-reload-button\",\"sidebar-button\",\"urlbar-container\"],\"toolbar-menubar\":[\"menubar-items\"],\"TabsToolbar\":[],\"vertical-tabs\":[\"tabbrowser-tabs\"],\"PersonalToolbar\":[\"personal-bookmarks\"]},\"seen\":[\"reset-pbm-toolbar-button\",\"smartwindow-group-tabs-button\",\"ai-window-toggle\",\"developer-button\",\"screenshot-button\",\"alltabs-button\"],\"dirtyAreaCache\":[\"nav-bar\",\"vertical-tabs\"],\"currentVersion\":28,\"newElementCount\":0}");
+user_pref("browser.uiCustomization.state", "{\"placements\":{\"widget-overflow-fixed-list\":[],\"unified-extensions-area\":[],\"nav-bar\":[\"downloads-button\",\"preferences-button\",\"unified-extensions-button\",\"vertical-spacer\",\"back-button\",\"forward-button\",\"stop-reload-button\",\"sidebar-button\",\"urlbar-container\"],\"toolbar-menubar\":[\"menubar-items\"],\"TabsToolbar\":[],\"vertical-tabs\":[\"tabbrowser-tabs\"],\"PersonalToolbar\":[\"personal-bookmarks\"]},\"seen\":[\"reset-pbm-toolbar-button\",\"smartwindow-group-tabs-button\",\"ai-window-toggle\",\"developer-button\",\"screenshot-button\",\"alltabs-button\"],\"dirtyAreaCache\":[\"nav-bar\",\"vertical-tabs\"],\"currentVersion\":28,\"newElementCount\":0}");
 
 // --- See-through window (Windows 11 acrylic blur) ------------------------------
 // toplevel-backdrop: 0 auto, 1 Mica, 2 acrylic (blurs what's behind the window),

@@ -391,3 +391,30 @@ menupopup menuseparator {
 #urlbar[open] .urlbar-background {
   background-color: rgb(16 20 28 / 0.86) !important;
 }
+
+/* ---- Vim status (pending keys, HINT, IGNORE, messages) ---------------------- */
+/* Created by js/boot.sys.mjs; sits between the downloads and settings buttons. */
+#vim-status {
+  display: none;
+  position: fixed;
+  bottom: calc(var(--c-gap) + 13px);
+  left: calc(var(--c-gap) + var(--c-sidebar-w) / 2);
+  transform: translateX(-50%);
+  z-index: 5;
+  pointer-events: none;
+  font: 600 11px/1.4 ui-monospace, Consolas, monospace;
+  letter-spacing: 0.06em;
+  color: var(--c-accent);
+  white-space: nowrap;
+}
+#vim-status[active] {
+  display: block;
+}
+#main-window:has(#sidebar-container:not([sidebar-launcher-expanded])) #vim-status {
+  left: calc(var(--c-gap) + 12px);
+  bottom: calc(var(--c-gap) + 12px);
+  transform: none;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgb(12 16 24 / 0.85);
+}

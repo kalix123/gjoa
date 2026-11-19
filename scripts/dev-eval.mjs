@@ -5,6 +5,8 @@
 //   node scripts/dev-eval.mjs --file some-script.js
 //   node scripts/dev-eval.mjs --screenshot out.png    (the whole browser window)
 //   node scripts/dev-eval.mjs --content "return document.title"   (in the selected tab's page)
+//   node scripts/dev-eval.mjs --content --sys "return Services.appinfo.remoteType"   (page process, privileged)
+//   node scripts/dev-eval.mjs --keys "jj<C-d>"   (type real keys into the page)
 //
 // The script body runs like a function in the browser window; `return` a
 // JSON-serialisable value to print it.
@@ -15,7 +17,36 @@ import { connect } from "node:net";
 const argv = process.argv.slice(2);
 const inContent = argv[0] === "--content";
 if (inContent) argv.shift();
+// --content --sys: run in the page process with system privileges (Services etc.).
+const systemInContent = inContent && argv[0] === "--sys";
+if (systemInContent) argv.shift();
 const shotPath = argv[0] === "--screenshot" ? argv[1] : null;
+// --keys "jj<C-d>": type real (trusted) keys into the selected tab's page.
+const keysArg = argv[0] === "--keys" ? argv[1] : null;
+if (keysArg) argv.splice(0, argv.length, "--screenshot-skip");
+
+// WebDriver key values for the names used in vimrc notation.
+const WD_KEYS = { Esc: "", CR: "", Tab: "", BS: "", Insert: "", Del: "", Space: " ", Up: "", Down: "", Left: "", Right: "", PageUp: "", PageDown: "", Home: "", End: "", lt: "<" };
+const WD_MODS = { C: "", A: "", M: "", S: "" };
+function keyActions(text) {
+  const actions = [];
+  const press = (v) => actions.push({ type: "keyDown", value: v }, { type: "keyUp", value: v });
+  for (let i = 0; i < text.length; i++) {
+    const end = text[i] === "<" ? text.indexOf(">", i + 2) : -1;
+    if (end < 0) {
+      press(text[i]);
+      continue;
+    }
+    const parts = text.slice(i + 1, end).split("-");
+    const base = parts.pop();
+    const mods = parts.map((m) => WD_MODS[m.toUpperCase()]).filter(Boolean);
+    for (const m of mods) actions.push({ type: "keyDown", value: m });
+    press(WD_KEYS[base] ?? base);
+    for (const m of mods.reverse()) actions.push({ type: "keyUp", value: m });
+    i = end;
+  }
+  return actions;
+}
 const script = shotPath ? null : argv[0] === "--file" ? readFileSync(argv[1], "utf8") : argv.join(" ");
 const port = Number(process.env.MARIONETTE_PORT ?? 2828);
 
@@ -86,7 +117,12 @@ try {
     await send("WebDriver:SwitchToWindow", { handle: (await send("WebDriver:GetWindowHandle")).value });
     await send("Marionette:SetContext", { value: "content" });
   }
-  if (shotPath) {
+  if (keysArg) {
+    await send("Marionette:SetContext", { value: "content" });
+    await send("WebDriver:PerformActions", { actions: [{ type: "key", id: "keyboard", actions: keyActions(keysArg) }] });
+    await send("WebDriver:ReleaseActions");
+    console.log(`typed ${keysArg}`);
+  } else if (shotPath) {
     const res = await send("WebDriver:TakeScreenshot", { full: false, hash: false });
     writeFileSync(shotPath, Buffer.from(res.value, "base64"));
     console.log(`saved ${shotPath}`);
@@ -94,7 +130,7 @@ try {
     // Wrapped so scripts can use await; Marionette waits for the promise.
     const res = await send("WebDriver:ExecuteScript", { script: `return (async () => {
 ${script}
-})();`, args: [], ...(inContent ? {} : { sandbox: "system" }) });
+})();`, args: [], ...(inContent && !systemInContent ? {} : { sandbox: "system" }) });
     const value = res?.value;
     console.log(typeof value === "string" ? value : JSON.stringify(value, null, 2));
   }

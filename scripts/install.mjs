@@ -98,8 +98,15 @@ if (opts.launch) stopFirefoxOn(opts.profile);
 
 mkdirSync(profileDir, { recursive: true });
 cpSync(join(root, "profile", "user.js"), join(profileDir, "user.js"));
+// chrome/vimrc is the user's own key config: created from the template once,
+// never overwritten. (Before the defaults moved to js/vim/defaults.vimrc the
+// installer wrote a full copy of them here; that old copy is replaced.)
+const userVimrc = join(profileDir, "chrome", "vimrc");
+let keptVimrc = existsSync(userVimrc) ? readFileSync(userVimrc, "utf8") : null;
+if (keptVimrc?.startsWith('" Vim-style keys for every page')) keptVimrc = null;
 rmSync(join(profileDir, "chrome"), { recursive: true, force: true });
 cpSync(join(root, "profile", "chrome"), join(profileDir, "chrome"), { recursive: true });
+if (keptVimrc !== null) writeFileSync(userVimrc, keptVimrc);
 // Firefox caches compiled chrome scripts per profile; drop the cache so the
 // next start runs the new files (it lives in the local, non-roaming folder on
 // Windows/macOS).

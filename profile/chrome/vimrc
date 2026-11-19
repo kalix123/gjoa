@@ -1,11 +1,15 @@
-" Vim-style keys for every page — websites, the new tab page, Settings,
-" addons.mozilla.org — handled before the page sees them.
+" Your Vim key config. Open it from the browser with :config; a running
+" browser applies changes within a second of saving. Press ? on any page to
+" see every key and command.
 "
-" A running browser re-reads this file within a second of it changing.
+" This file is read after the built-in defaults (chrome/js/vim/defaults.vimrc),
+" so anything here adds to or overrides them. The installer creates it once
+" and never overwrites it.
 "
 " Syntax (like Tridactyl's rc file):
 "   bind <keys> <command> [args...]
 "   unbind <keys>
+"   unbindall                  (start from nothing)
 "   set <name> <value>
 "   " and # start comments
 "
@@ -13,69 +17,14 @@
 " <S-Insert> shift+insert, and <Esc> <Space> <CR> <Tab> <BS> <Up> <Down>
 " <Left> <Right> <PageUp> <PageDown> <Home> <End> <F1>..<F12> <lt>.
 " Sequences are written together: gg, gt, <C-w>c.
-" A number before a key repeats it: 5j scrolls five steps.
 "
-" Text fields get every key; <Esc> leaves them. <S-Insert> (toggleignore)
-" turns the keys off for the current tab, for sites with their own shortcuts.
-
-set hintchars asdfghjkl     " letters used for link hints
-set scrollstep 70           " pixels per j/k
-set smoothscroll true
-set timeout 1500            " ms to wait for the rest of a sequence
-
-" --- scrolling -------------------------------------------------------------
-bind j scrolldown
-bind k scrollup
-bind h scrollleft
-bind l scrollright
-bind <C-d> halfpagedown
-bind <C-u> halfpageup
-bind <C-f> pagedown
-bind <C-b> pageup
-bind gg scrolltop
-bind G scrollbottom
-
-" --- history and reloading -------------------------------------------------
-bind H back
-bind L forward
-bind r reload
-bind R reloadhard
-bind gu urlup
-bind gU urlroot
-
-" --- tabs (J/K follow the vertical tab list: J down, K up) -----------------
-bind J tabnext
-bind K tabprev
-bind gt tabnext
-bind gT tabprev
-bind g0 tabfirst
-bind g$ tablast
-bind d tabclose
-bind u tabundo
-bind t tabopen
-bind yt tabduplicate
-bind gp tabpin
-bind gb togglesidebar
-
-" --- opening and copying ---------------------------------------------------
-bind o open                 " address bar, ready to type
-bind O opencurrent          " address bar with the current address to edit
-bind p clipboardopen        " open the copied address/search here
-bind P clipboardtabopen     " …in a new tab
-bind yy yankurl
-
-" --- hints and inputs ------------------------------------------------------
-bind f hint                 " label links/buttons; type a label to click it
-bind F hinttab              " …open the link in a background tab
-bind gi focusinput          " jump into the first text field
-
-" --- find and zoom ---------------------------------------------------------
-bind / find
-bind n findnext
-bind N findprev
-bind zi zoomin
-bind zo zoomout
-bind zz zoomreset
-
-" --- modes -----------------------------------------------------------------
-bind <S-Insert> toggleignore
+" Settings: hintchars, scrollstep (pixels), smoothscroll (true/false),
+" timeout (ms to wait for the rest of a sequence), editor (program :config
+" opens this file with, e.g. "set editor code"; Notepad if unset).
+"
+" Examples:
+"   bind x tabclose
+"   bind gh open https://github.com
+"   unbind d
+"   set scrollstep 120
+"   set editor code

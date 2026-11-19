@@ -57,7 +57,7 @@ export const COMMANDS = {
   tablast: (win) => selectTab(win, () => win.gBrowser.selectTabAtIndex(-1)),
   tabclose: (win, n) => selectTab(win, () => repeat(n, () => win.gBrowser.removeTab(win.gBrowser.selectedTab, { animate: false }))),
   tabundo: (win) => selectTab(win, () => win.SessionWindowUI.undoCloseTab(win)),
-  tabopen: (win) => win.BrowserCommands.openTab(),
+  tabopen: (win, n, args = []) => (args.length ? openText(win, args.join(" "), "tab") : win.BrowserCommands.openTab()),
   tabduplicate: (win) => {
     win.gBrowser.selectedTab = win.gBrowser.duplicateTab(win.gBrowser.selectedTab);
   },
@@ -68,9 +68,7 @@ export const COMMANDS = {
   },
   togglesidebar: (win) => win.document.getElementById("sidebar-button")?.doCommand(),
 
-  open: (win) => {
-    win.gURLBar.select();
-  },
+  open: (win, n, args = []) => (args.length ? openText(win, args.join(" "), "current") : win.gURLBar.select()),
   opencurrent: (win) => {
     win.gURLBar.focus();
     const input = win.gURLBar.inputField;
@@ -101,3 +99,59 @@ export const PAGE_COMMANDS = new Set([
   "scrolldown", "scrollup", "scrollleft", "scrollright", "halfpagedown", "halfpageup",
   "pagedown", "pageup", "scrolltop", "scrollbottom", "hint", "hinttab", "focusinput", "toggleignore",
 ]);
+
+// Every command, for the ? help and : completion. `args` describes what the
+// command takes when typed on the command line.
+export const DOCS = [
+  ["Scrolling", "scrolldown", "Scroll down"],
+  ["Scrolling", "scrollup", "Scroll up"],
+  ["Scrolling", "scrollleft", "Scroll left"],
+  ["Scrolling", "scrollright", "Scroll right"],
+  ["Scrolling", "halfpagedown", "Half a page down"],
+  ["Scrolling", "halfpageup", "Half a page up"],
+  ["Scrolling", "pagedown", "A page down"],
+  ["Scrolling", "pageup", "A page up"],
+  ["Scrolling", "scrolltop", "Top of the page"],
+  ["Scrolling", "scrollbottom", "Bottom of the page"],
+  ["Page", "back", "Back"],
+  ["Page", "forward", "Forward"],
+  ["Page", "reload", "Reload"],
+  ["Page", "reloadhard", "Reload, bypassing the cache"],
+  ["Page", "urlup", "Up one level in the address"],
+  ["Page", "urlroot", "The site's front page"],
+  ["Page", "find", "Find in page"],
+  ["Page", "findnext", "Next match"],
+  ["Page", "findprev", "Previous match"],
+  ["Page", "zoomin", "Zoom in"],
+  ["Page", "zoomout", "Zoom out"],
+  ["Page", "zoomreset", "Reset zoom"],
+  ["Tabs", "tabnext", "Next tab"],
+  ["Tabs", "tabprev", "Previous tab"],
+  ["Tabs", "tabfirst", "First tab"],
+  ["Tabs", "tablast", "Last tab"],
+  ["Tabs", "tabclose", "Close tab"],
+  ["Tabs", "tabundo", "Reopen the last closed tab"],
+  ["Tabs", "tabopen", "New tab, or open an address/search in one", "[url or search]"],
+  ["Tabs", "tabduplicate", "Duplicate tab"],
+  ["Tabs", "tabpin", "Pin / unpin tab"],
+  ["Tabs", "togglesidebar", "Show / hide the sidebar"],
+  ["Opening", "open", "Address bar, or open an address/search here", "[url or search]"],
+  ["Opening", "opencurrent", "Edit the current address"],
+  ["Opening", "clipboardopen", "Open the copied address/search here"],
+  ["Opening", "clipboardtabopen", "…in a new tab"],
+  ["Opening", "yankurl", "Copy the address"],
+  ["Hints", "hint", "Label links and buttons; type a label to click"],
+  ["Hints", "hinttab", "Open a link in a background tab"],
+  ["Hints", "focusinput", "Jump into the first text field"],
+  ["Modes", "toggleignore", "Keys off / on for this tab"],
+  ["Modes", "help", "This help"],
+  ["Modes", "cmdline", "Command line"],
+  ["Config", "config", "Open your config file (chrome/vimrc) in an editor"],
+  ["Config", "source", "Re-read the config files"],
+  ["Config", "set", "Change a setting for this session", "<name> <value>"],
+  ["Config", "bind", "Bind keys for this session", "<keys> <command> [args]"],
+  ["Config", "unbind", "Remove a binding for this session", "<keys>"],
+].map(([group, name, desc, args]) => ({ group, name, desc, args }));
+
+// Short names accepted on the command line.
+export const ALIASES = { q: "tabclose", quit: "tabclose", h: "help", o: "open", t: "tabopen", conf: "config" };

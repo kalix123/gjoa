@@ -7,6 +7,7 @@
 //   node scripts/dev-eval.mjs --content "return document.title"   (in the selected tab's page)
 //   node scripts/dev-eval.mjs --content --sys "return Services.appinfo.remoteType"   (page process, privileged)
 //   node scripts/dev-eval.mjs --keys "jj<C-d>"   (type real keys into the page)
+//   node scripts/dev-eval.mjs --chrome-keys "abc<CR>"   (…into the browser window)
 //
 // The script body runs like a function in the browser window; `return` a
 // JSON-serialisable value to print it.
@@ -22,7 +23,9 @@ const systemInContent = inContent && argv[0] === "--sys";
 if (systemInContent) argv.shift();
 const shotPath = argv[0] === "--screenshot" ? argv[1] : null;
 // --keys "jj<C-d>": type real (trusted) keys into the selected tab's page.
-const keysArg = argv[0] === "--keys" ? argv[1] : null;
+const keysArg = argv[0] === "--keys" || argv[0] === "--chrome-keys" ? argv[1] : null;
+// --chrome-keys: type into the browser window itself (address bar, command line).
+const keysToChrome = argv[0] === "--chrome-keys";
 if (keysArg) argv.splice(0, argv.length, "--screenshot-skip");
 
 // WebDriver key values for the names used in vimrc notation.
@@ -118,7 +121,7 @@ try {
     await send("Marionette:SetContext", { value: "content" });
   }
   if (keysArg) {
-    await send("Marionette:SetContext", { value: "content" });
+    if (!keysToChrome) await send("Marionette:SetContext", { value: "content" });
     await send("WebDriver:PerformActions", { actions: [{ type: "key", id: "keyboard", actions: keyActions(keysArg) }] });
     await send("WebDriver:ReleaseActions");
     console.log(`typed ${keysArg}`);

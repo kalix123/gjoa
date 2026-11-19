@@ -1,0 +1,11 @@
+/* Styling for Firefox's own pages (new tab, about:*). Web pages are left alone. */
+
+@-moz-document url("about:newtab"), url("about:home"), url("about:blank") {
+  :root,
+  body {
+    background-color: #2e3440 !important;
+    --newtab-background-color: #2e3440 !important;
+    --newtab-background-color-secondary: #3b4252 !important;
+    --newtab-text-primary-color: #e5e9f0 !important;
+  }
+}

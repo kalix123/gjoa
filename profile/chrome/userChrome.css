@@ -1,0 +1,132 @@
+/* Browser window styling (Firefox 160, native vertical tabs).
+   Element ids come from the live window; see README for how to inspect them. */
+
+/* ---- Palette (Nord "polar night") ------------------------------------- */
+:root {
+  --c-bg: #242933;        /* window frame, sidebar */
+  --c-surface: #2e3440;   /* fields, hovered tabs */
+  --c-raised: #3b4252;    /* selected tab, menus */
+  --c-line: #434c5e;
+  --c-text: #e5e9f0;
+  --c-muted: #9aa3b5;
+  --c-accent: #88c0d0;
+  --c-radius: 8px;
+  --c-gap: 8px;
+
+  /* Firefox's own theme variables, so built-in widgets follow the palette. */
+  --lwt-accent-color: var(--c-bg) !important;
+  --lwt-text-color: var(--c-text) !important;
+  --toolbox-bgcolor: var(--c-bg) !important;
+  --toolbox-textcolor: var(--c-text) !important;
+  --toolbar-bgcolor: var(--c-bg) !important;
+  --toolbar-color: var(--c-text) !important;
+  --toolbar-field-background-color: var(--c-surface) !important;
+  --toolbar-field-focus-background-color: var(--c-raised) !important;
+  --toolbar-field-color: var(--c-text) !important;
+  --toolbar-field-focus-color: var(--c-text) !important;
+  --toolbar-field-border-color: transparent !important;
+  --toolbar-field-focus-border-color: var(--c-accent) !important;
+  --sidebar-background-color: var(--c-bg) !important;
+  --sidebar-text-color: var(--c-text) !important;
+  --sidebar-border-color: transparent !important;
+  --tab-selected-bgcolor: var(--c-raised) !important;
+  --tab-selected-textcolor: var(--c-text) !important;
+  --tab-hover-background-color: var(--c-surface) !important;
+  --arrowpanel-background: var(--c-raised) !important;
+  --arrowpanel-color: var(--c-text) !important;
+  --arrowpanel-border-color: var(--c-line) !important;
+  --focus-outline-color: var(--c-accent) !important;
+  --toolbarbutton-icon-fill: var(--c-text) !important;
+  --chrome-content-separator-color: transparent !important;
+  --tabpanel-background-color: var(--c-surface) !important;
+}
+
+#main-window,
+#navigator-toolbox,
+#nav-bar,
+#browser,
+#sidebar-main,
+#tabbrowser-tabbox {
+  background-color: var(--c-bg) !important;
+  color: var(--c-text) !important;
+}
+
+#navigator-toolbox,
+#nav-bar {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* ---- Toolbar ----------------------------------------------------------- */
+/* The tab list lives in the sidebar, so the "all tabs" button is redundant. */
+#alltabs-button {
+  display: none !important;
+}
+
+#urlbar-background,
+#urlbar .urlbar-background {
+  border-radius: var(--c-radius) !important;
+  border: 1px solid transparent !important;
+  box-shadow: none !important;
+}
+#urlbar[focused] .urlbar-background {
+  border-color: var(--c-accent) !important;
+}
+
+/* ---- Content area: a floating card with a gap around it --------------- */
+#tabbrowser-tabbox {
+  padding: 0 var(--c-gap) var(--c-gap) 0 !important;
+}
+#tabbrowser-tabpanels {
+  background-color: var(--c-bg) !important;
+}
+.browserStack {
+  border-radius: var(--c-radius) !important;
+  overflow: clip !important;
+  outline: 1px solid var(--c-line) !important;
+  outline-offset: -1px;
+  box-shadow: 0 2px 12px rgb(0 0 0 / 0.35) !important;
+}
+.browserStack > browser {
+  border-radius: var(--c-radius) !important;
+}
+
+/* No line between the sidebar and the content. */
+#sidebar-launcher-splitter {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* ---- Vertical tabs ------------------------------------------------------ */
+#tabbrowser-tabs[orient="vertical"] .tabbrowser-tab {
+  padding-block: 1px !important;
+}
+#tabbrowser-tabs[orient="vertical"] .tab-background {
+  border-radius: 6px !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+#tabbrowser-tabs[orient="vertical"] .tabbrowser-tab[selected] .tab-background {
+  background: var(--c-raised) !important;
+  box-shadow: inset 3px 0 0 var(--c-accent) !important;
+}
+#tabbrowser-tabs[orient="vertical"] .tabbrowser-tab:not([selected]) .tab-label {
+  color: var(--c-muted) !important;
+}
+#tabbrowser-tabs[orient="vertical"] .tabbrowser-tab:hover .tab-label {
+  color: var(--c-text) !important;
+}
+/* Close buttons only on hover or on the selected tab. */
+#tabbrowser-tabs[orient="vertical"] .tabbrowser-tab:not(:hover, [selected]) .tab-close-button {
+  visibility: hidden !important;
+}
+
+/* ---- Menus and panels -------------------------------------------------- */
+menupopup,
+panel {
+  --panel-background: var(--c-raised) !important;
+  --panel-color: var(--c-text) !important;
+  --panel-border-color: var(--c-line) !important;
+  --panel-border-radius: var(--c-radius) !important;
+}

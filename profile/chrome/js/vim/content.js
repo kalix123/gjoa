@@ -423,9 +423,14 @@
   });
 
   // --- attaching to every page window ---------------------------------------
+  // Tracked per document, not per window: navigating within a tab (following
+  // a link, or a tab's first load replacing its blank page) keeps the same
+  // window object but gives it a new document without our listener.
+  const attachedDocs = new WeakSet();
   function attach(doc) {
     const win = doc?.defaultView;
-    if (!win || !win.browsingContext?.isContent || states.has(win)) return;
+    if (!win || !win.browsingContext?.isContent || attachedDocs.has(doc)) return;
+    attachedDocs.add(doc);
     stateFor(win);
     win.addEventListener("keydown", onKeyDown, { capture: true });
     win.addEventListener("pagehide", () => {
@@ -435,4 +440,19 @@
     if (win.top === win) tops.set(win.browsingContext.id, new WeakRef(win));
   }
   Services.obs.addObserver((doc) => attach(doc), "document-element-inserted");
+
+  // Pages this process was already showing before the script arrived: the
+  // browser sends the ids of all tabs, and each process attaches to the ones
+  // (and their frames) that live here.
+  Services.cpmm.addMessageListener("Vim:AttachExisting", (msg) => {
+    const visit = (bc) => {
+      let win = null;
+      try {
+        win = bc?.window; // null (or throws) when the page lives in another process
+      } catch {}
+      if (win?.document?.documentElement) attach(win.document);
+      for (const child of bc?.children ?? []) visit(child);
+    };
+    for (const id of msg.data.browserIds) visit(BrowsingContext.getCurrentTopByBrowserId(id));
+  });
 })();

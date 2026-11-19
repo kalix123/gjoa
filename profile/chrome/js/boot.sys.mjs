@@ -16,6 +16,7 @@ import { applyLine, parseConfig } from "resource://profile-js/vim/config.sys.mjs
 import { ALIASES, COMMANDS, PAGE_COMMANDS } from "resource://profile-js/vim/commands.sys.mjs";
 import { showCmdline, showHelp } from "resource://profile-js/vim/ui.sys.mjs";
 import { clearTimeout, setInterval, setTimeout } from "resource://gre/modules/Timer.sys.mjs";
+import { NetUtil } from "resource://gre/modules/NetUtil.sys.mjs";
 
 const CHROME_DIR = Services.dirsvc.get("UChrm", Ci.nsIFile).path;
 const VIM_DIR = PathUtils.join(CHROME_DIR, "js", "vim");
@@ -33,11 +34,19 @@ let config = { bindings: {}, prefixes: [], settings: {}, errors: [] };
 let configStamp = "";
 const sessionLines = [];
 
-async function readOrEmpty(path) {
+// Startup reads are synchronous on purpose: this module runs before any page
+// loads, and pages that load before the page script is registered (restored
+// tabs, a URL passed on the command line) would otherwise miss the keys.
+function readSync(path) {
+  const file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsIFile);
+  file.initWithPath(path);
+  if (!file.exists()) return "";
+  const stream = Cc["@mozilla.org/network/file-input-stream;1"].createInstance(Ci.nsIFileInputStream);
+  stream.init(file, 0x01, 0, 0);
   try {
-    return await IOUtils.readUTF8(path);
-  } catch {
-    return "";
+    return NetUtil.readInputStreamToString(stream, stream.available(), { charset: "UTF-8" });
+  } finally {
+    stream.close();
   }
 }
 
@@ -50,11 +59,11 @@ function share() {
   Services.ppmm.sharedData.flush();
 }
 
-async function loadConfig() {
+function loadConfig() {
   config = parseConfig(
     [
-      { name: "defaults.vimrc", text: await readOrEmpty(DEFAULTS_VIMRC) },
-      { name: "vimrc", text: await readOrEmpty(USER_VIMRC) },
+      { name: "defaults.vimrc", text: readSync(DEFAULTS_VIMRC) },
+      { name: "vimrc", text: readSync(USER_VIMRC) },
       { name: "this session", text: sessionLines.join("\n") },
     ],
     VimKeys
@@ -143,7 +152,8 @@ const META = {
     openConfig().then((msg) => showStatus(win, msg, true), (e) => showStatus(win, `config: ${e.message}`, true));
   },
   source: (win) => {
-    loadConfig().then(() => showStatus(win, config.errors.length ? `config: ${config.errors[0]}` : "config re-read", true));
+    loadConfig();
+    showStatus(win, config.errors.length ? `config: ${config.errors[0]}` : "config re-read", true);
   },
   set: (win, n, args) => sessionDirective(win, ["set", ...args].join(" ")),
   bind: (win, n, args) => sessionDirective(win, ["bind", ...args].join(" ")),
@@ -162,11 +172,21 @@ function runLine(win, line) {
 }
 
 // --- page script -------------------------------------------------------------
-async function loadPageScript() {
-  const keys = await IOUtils.readUTF8(PathUtils.join(VIM_DIR, "keys.js"));
-  const content = await IOUtils.readUTF8(PathUtils.join(VIM_DIR, "content.js"));
+function loadPageScript() {
+  const keys = readSync(PathUtils.join(VIM_DIR, "keys.js"));
+  const content = readSync(PathUtils.join(VIM_DIR, "content.js"));
   const source = `(function () {\n${keys}\n${content}\n})();`;
   Services.ppmm.loadProcessScript("data:text/javascript;charset=utf-8," + encodeURIComponent(source), true);
+}
+
+// Pages already open when the page script arrives (or that loaded in a race
+// with it) get attached too: every process looks up the tabs it is showing.
+function attachExistingPages() {
+  const browserIds = [];
+  for (const win of Services.wm.getEnumerator("navigator:browser")) {
+    for (const tab of win.gBrowser?.tabs ?? []) browserIds.push(tab.linkedBrowser.browserId);
+  }
+  Services.ppmm.broadcastAsyncMessage("Vim:AttachExisting", { browserIds });
 }
 
 // --- status display (sidebar footer) ----------------------------------------
@@ -317,14 +337,23 @@ function keepFocusOnNewTabPage(win) {
 }
 
 // --- start -------------------------------------------------------------------
-async function start() {
-  await checkConfig();
-  setInterval(checkConfig, 1000);
-  await loadPageScript();
+function start() {
+  loadConfig();
+  loadPageScript();
   Services.ppmm.addMessageListener("Vim:Command", pageMessages);
   Services.ppmm.addMessageListener("Vim:Status", pageMessages);
-  Services.obs.addObserver((win) => setUpWindow(win), "browser-delayed-startup-finished");
+  Services.obs.addObserver((win) => {
+    setUpWindow(win);
+    attachExistingPages();
+  }, "browser-delayed-startup-finished");
   for (const win of Services.wm.getEnumerator("navigator:browser")) setUpWindow(win);
+  attachExistingPages();
+  checkConfig();
+  setInterval(checkConfig, 1000);
 }
 
-start().catch((e) => console.error("vim: failed to start", e));
+try {
+  start();
+} catch (e) {
+  console.error("vim: failed to start", e);
+}

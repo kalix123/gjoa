@@ -21,7 +21,7 @@
   --c-card-page: rgb(24 27 33 / 0.55);
   --c-field: rgb(255 255 255 / 0.05);
   --c-hover: rgb(255 255 255 / 0.06);
-  --c-menu: rgb(20 24 32 / 0.62);   /* translucent: popups get the backdrop too */
+  --c-menu: rgb(18 22 30 / 0.55);   /* translucent: menus get the Windows backdrop */
 
   /* Firefox's theme variables, so built-in widgets follow along. */
   --toolbar-bgcolor: transparent !important;
@@ -360,11 +360,27 @@ sidebar-main,
   font-size: 13.5px !important;
 }
 
-/* ---- Menus and panels -------------------------------------------------- */
+/* ---- Menus, panels and dropdowns ----------------------------------------- */
+/* Every menu is its own small OS window; widget.windows.mica.popups=2
+   (user.js) puts the Windows backdrop behind it, which shows through
+   wherever the menu itself is translucent. popup.css paints the menu body
+   with --panel-background-color (Firefox 160). Covers right-click menus,
+   the ☰ and extensions panels, and <select> dropdowns on web pages. */
 menupopup,
 panel {
-  --panel-background: var(--c-menu) !important;
-  --panel-color: var(--c-text) !important;
+  --panel-background-color: var(--c-menu) !important;
+  --panel-text-color: var(--c-text) !important;
   --panel-border-color: var(--c-line) !important;
   --panel-border-radius: var(--c-radius) !important;
+  --panel-background: var(--c-menu) !important;
+  --panel-color: var(--c-text) !important;
+}
+menupopup menuseparator {
+  opacity: 0.4;
+}
+
+/* Address-bar suggestions open inside the window, over the see-through
+   frame: keep them a little translucent too. */
+#urlbar[open] .urlbar-background {
+  background-color: rgb(16 20 28 / 0.86) !important;
 }

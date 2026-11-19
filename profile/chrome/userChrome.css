@@ -188,21 +188,16 @@ button-group.tools-and-extensions,
   left: calc(var(--c-gap) + var(--c-sidebar-w) - 10px - 32px) !important;
 }
 
-/* ---- Window caption buttons ------------------------------------------------ */
-/* Minimise / maximise / close at the right of a full-width strip along the
-   top; the strip doubles as the window's drag handle. */
+/* ---- Window caption buttons and dragging ------------------------------------ */
+/* Minimise / maximise / close sit in the top-right corner, only as wide as
+   the buttons (a full-width strip here used to swallow clicks on the toolbar).
+   The window is dragged by the empty gaps around the two cards instead. */
 .titlebar-buttonbox-container {
   position: fixed !important;
   top: 0 !important;
-  left: 0 !important;
   right: 0 !important;
   height: var(--c-caption-h) !important;
-  justify-content: flex-end !important;
-  -moz-window-dragging: drag;
   z-index: 2 !important;
-}
-.titlebar-buttonbox {
-  -moz-window-dragging: no-drag;
 }
 .titlebar-button {
   padding-block: 0 !important;
@@ -211,42 +206,52 @@ button-group.tools-and-extensions,
 .titlebar-button:hover {
   opacity: 1;
 }
+#browser {
+  -moz-window-dragging: drag;
+}
+sidebar-main,
+.browserStack {
+  -moz-window-dragging: no-drag;
+}
 
-/* ---- Sidebar collapsed (the sidebar button) --------------------------------- */
+/* ---- Sidebar hidden (the sidebar button) ------------------------------------ */
 /* Firefox collapses the launcher by dropping [sidebar-launcher-expanded].
-   Then: no sidebar card; the toolbar becomes one row in the top strip. */
+   Then the page takes the whole window and only the sidebar button stays,
+   top-left, to bring it back. The address bar is still there for Ctrl+L: it
+   fades in over the top while focused. */
 #main-window:has(#sidebar-container:not([sidebar-launcher-expanded])) {
-  --c-caption-h: 44px;
+  --c-caption-h: 36px;
 }
 #main-window:has(#sidebar-container:not([sidebar-launcher-expanded])) #sidebar-container {
   display: none !important;
 }
 #main-window:has(#sidebar-container:not([sidebar-launcher-expanded])) #navigator-toolbox {
   top: 0 !important;
-  width: calc(100vw - 160px) !important;   /* leave room for the caption buttons */
+  width: auto !important;
 }
 #main-window:has(#sidebar-container:not([sidebar-launcher-expanded])) #nav-bar {
-  padding: 6px 0 0 !important;
+  padding: 4px 0 0 !important;
   min-height: 0 !important;
-}
-/* ☰ back in the row, first; no reserved gap before the extensions button. */
-#main-window:has(#sidebar-container:not([sidebar-launcher-expanded])) #PanelUI-button {
-  position: static !important;
-  order: -1 !important;
 }
 #main-window:has(#sidebar-container:not([sidebar-launcher-expanded])) #nav-bar-customization-target {
   padding-inline-start: 0 !important;
 }
-#main-window:has(#sidebar-container:not([sidebar-launcher-expanded])) #vertical-spacer {
-  flex: 0 0 8px !important;
+#main-window:has(#sidebar-container:not([sidebar-launcher-expanded])) :is(#PanelUI-button, #nav-bar-customization-target > :not(#sidebar-button, #urlbar-container)) {
+  display: none !important;
 }
 #main-window:has(#sidebar-container:not([sidebar-launcher-expanded])) #urlbar-container {
-  position: static !important;
-  flex: 0 1 640px !important;
-  width: auto !important;
+  position: fixed !important;
+  top: 2px !important;
+  left: 48px !important;
+  right: auto !important;
+  width: min(640px, 60vw) !important;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms;
 }
-#main-window:has(#sidebar-container:not([sidebar-launcher-expanded])) :is(#downloads-button, #preferences-button) {
-  position: static !important;
+#main-window:has(#sidebar-container:not([sidebar-launcher-expanded])) #urlbar-container:has(#urlbar[focused]) {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 #alltabs-button {
@@ -272,7 +277,7 @@ button-group.tools-and-extensions,
 /* ---- Tabs -------------------------------------------------------------- */
 #vertical-tabs {
   flex-direction: column !important;
-  padding-inline: 10px !important;
+  padding: 4px 6px 0 !important;
 }
 /* No "+ New Tab" row: Ctrl+T, or middle-click empty space in the list. */
 #tabs-newtab-button,
@@ -286,9 +291,13 @@ button-group.tools-and-extensions,
   padding-block: 1px !important;
 }
 #tabbrowser-tabs[orient="vertical"] .tab-content {
-  padding-inline: 10px 8px !important;
+  padding-inline: 9px !important;
 }
+/* Firefox insets the highlight 9px from the tab edge, which left the icon
+   sitting on the outline; let it span the tab instead. */
 #tabbrowser-tabs[orient="vertical"] .tab-background {
+  margin-inline: 0 !important;
+  margin-block: 1px !important;
   border-radius: 6px !important;
   border: 1px solid transparent !important;
   outline: none !important;
@@ -314,11 +323,9 @@ button-group.tools-and-extensions,
 #tabbrowser-tabs[orient="vertical"] .tabbrowser-tab:hover .tab-label {
   color: var(--c-text) !important;
 }
-#tabbrowser-tabs[orient="vertical"] .tabbrowser-tab:not(:hover, [selected]) .tab-close-button {
-  display: none !important;
-}
+/* No close buttons: tabs close from the keyboard (or middle-click). */
 #tabbrowser-tabs[orient="vertical"] .tab-close-button {
-  opacity: 0.6;
+  display: none !important;
 }
 
 /* ---- Decluttering the toolbar and address bar --------------------------- */

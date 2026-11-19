@@ -121,8 +121,7 @@ button-group.tools-and-extensions,
 #nav-bar-customization-target {
   margin-inline-start: 0 !important;
 }
-/* Spacer between the left group (☰, extensions) and the right group
-   (back, forward, reload, sidebar). */
+/* Spacer between ☰ on the left and back, forward, sidebar on the right. */
 #vertical-spacer {
   flex: 1 1 0 !important;
   min-width: 0 !important;
@@ -136,8 +135,12 @@ button-group.tools-and-extensions,
   left: 10px !important;
   margin: 0 !important;
 }
+/* Extensions live in the ☰ menu (Add-ons and themes); no toolbar button. */
 #unified-extensions-button {
-  margin-inline-start: 34px !important;
+  display: none !important;
+}
+#nav-bar-customization-target {
+  padding-inline-start: 34px !important;   /* room for ☰ */
 }
 /* Address bar: its own full-width row under the buttons. */
 #urlbar-container {
@@ -231,8 +234,8 @@ button-group.tools-and-extensions,
   position: static !important;
   order: -1 !important;
 }
-#main-window:has(#sidebar-container:not([sidebar-launcher-expanded])) #unified-extensions-button {
-  margin-inline-start: 0 !important;
+#main-window:has(#sidebar-container:not([sidebar-launcher-expanded])) #nav-bar-customization-target {
+  padding-inline-start: 0 !important;
 }
 #main-window:has(#sidebar-container:not([sidebar-launcher-expanded])) #vertical-spacer {
   flex: 0 0 8px !important;
@@ -270,16 +273,6 @@ button-group.tools-and-extensions,
 #vertical-tabs {
   flex-direction: column !important;
   padding-inline: 10px !important;
-}
-#vertical-tabs::before {
-  content: "Tabs";
-  display: block;
-  padding: 10px 6px 6px;
-  font-size: 0.78em;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--c-muted);
 }
 /* No "+ New Tab" row: Ctrl+T, or middle-click empty space in the list. */
 #tabs-newtab-button,

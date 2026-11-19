@@ -375,6 +375,13 @@ panel {
   --panel-background: var(--c-menu) !important;
   --panel-color: var(--c-text) !important;
 }
+/* menu.css gives menus `appearance: auto` (-moz-default-appearance:
+   menupopup): Windows then paints them as solid native menus underneath
+   our tint. That's why right-click menus stayed opaque while <select>
+   dropdowns didn't. Drawing them ourselves lets the backdrop through. */
+menupopup {
+  appearance: none !important;
+}
 menupopup menuseparator {
   opacity: 0.4;
 }
